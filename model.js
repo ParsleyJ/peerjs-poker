@@ -246,10 +246,10 @@ class HandPattern {
                 pairs.push(cc); // remember: array of arrays
             }
             if (cc.length === 3) {
-                triplet.push(cc[0]);
+                triplet = triplet.concat(cc);
             }
             if (cc.length === 4) {
-                fourtet.push(cc[0]);
+                fourtet = fourtet.concat(cc);
             }
         }
 
