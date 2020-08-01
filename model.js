@@ -44,9 +44,10 @@ const idToFaces = {
     7: ["Seven", "7"],
     8: ["Eight", "8"],
     9: ["Nine", "9"],
-    10: ["Jack", "J"],
-    11: ["Queen", "Q"],
-    12: ["King", "K"]
+    10: ["Ten", "10"],
+    11: ["Jack", "J"],
+    12: ["Queen", "Q"],
+    13: ["King", "K"]
 }
 
 class Deck {
@@ -58,7 +59,7 @@ class Deck {
 
     static generate() {
         let cardSet = [];
-        for (let f = 1; f <= 12; f++) {
+        for (let f = 1; f <= 13; f++) {
             for (let s = 1; s <= 4; s++) {
                 cardSet.push(new Card(s, f));
             }
@@ -76,6 +77,29 @@ class Deck {
     }
 
 
+    get cards() {
+        return this._cards;
+    }
+
+    get size(){
+        return this._cards.length;
+    }
+
+    draw(howMany = 1){
+        let drawed = []
+        let tmp = []
+
+        for (let i = 0; i < howMany; i++){
+            drawed.push(this._cards[i]);
+        }
+
+        for (let i = howMany; i < this._cards.length; i++){
+            tmp.push(this._cards[i]);
+        }
+
+        this._cards = tmp;
+        return drawed;
+    }
 }
 
 
@@ -86,15 +110,14 @@ class Card {
     constructor(suit, face) {
         this._suit = suit;
         this._face = face;
-
     }
 
     toString() {
-        return idToFaces[this.face][0] + " of " + idToSuits[this.suit][0];
+        return "<" + idToFaces[this.face][1] + idToSuits[this.suit][1] + ">";
     }
 
-    toMiniString() {
-        return "[" + idToFaces[this.face][1] + idToSuits[this.suit][1] + "]";
+    toBigString() {
+        return idToFaces[this.face][0] + " of " + idToSuits[this.suit][0];
     }
 
     compare(other) {
@@ -188,7 +211,7 @@ class HandPattern {
 
         let straightDetected = true;
         for (let i = 0; i < 4; i++) {
-            if (cards[i].face - cards[i + 1].face === 1) {
+            if (cards[i+1].face - cards[i].face !== 1) {
                 straightDetected = false;
                 break;
             }
@@ -585,4 +608,7 @@ class Game {
     }
 }
 
-module.exports = {idToFaces, idToSuits, Deck, Card, SPADES, CLUBS, DIAMONDS, HEARTS}
+module.exports = {
+    idToFaces, idToSuits, Deck, Card, SPADES, CLUBS, DIAMONDS, HEARTS,
+    HandPattern, Flush, Pair, Straight, StraightFlush, DoublePair, ThreeOfAKind, Full, Poker,
+}
