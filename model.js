@@ -1,24 +1,17 @@
-class Player {
-    _name;
-    _budget;
+const readline = require('readline');
 
-    constructor(name, budget) {
-        this._name = name;
-        this._budget = budget;
-    }
+function askQuestion(query) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
 
-    get budget() {
-        return this._budget;
-    }
-
-    set budget(value) {
-        this._budget = value;
-    }
-
-    get name() {
-        return this._name;
-    }
+    return new Promise(resolve => rl.question(query, ans => {
+        rl.close();
+        resolve(ans);
+    }))
 }
+
 
 const SPADES = 1
 const CLUBS = 2
@@ -81,19 +74,19 @@ class Deck {
         return this._cards;
     }
 
-    get size(){
+    get size() {
         return this._cards.length;
     }
 
-    draw(howMany = 1){
+    draw(howMany = 1) {
         let drawed = []
         let tmp = []
 
-        for (let i = 0; i < howMany; i++){
+        for (let i = 0; i < howMany; i++) {
             drawed.push(this._cards[i]);
         }
 
-        for (let i = howMany; i < this._cards.length; i++){
+        for (let i = howMany; i < this._cards.length; i++) {
             tmp.push(this._cards[i]);
         }
 
@@ -101,7 +94,6 @@ class Deck {
         return drawed;
     }
 }
-
 
 class Card {
     _suit;
@@ -211,7 +203,7 @@ class HandPattern {
 
         let straightDetected = true;
         for (let i = 0; i < 4; i++) {
-            if (cards[i+1].face - cards[i].face !== 1) {
+            if (cards[i + 1].face - cards[i].face !== 1) {
                 straightDetected = false;
                 break;
             }
@@ -324,6 +316,10 @@ class HighestCard extends HandPattern {
         }
         return superCompare;
     }
+
+    toString(){
+        return "{No pattern; Cards: "+this._cards+"}"
+    }
 }
 
 class Pair extends HandPattern {
@@ -351,6 +347,10 @@ class Pair extends HandPattern {
             }
         }
         return superCompare;
+    }
+
+    toString(){
+        return "{PAIR; Pair:"+this._pair+"; Other cards: "+this._otherCards+"}"
     }
 }
 
@@ -387,6 +387,11 @@ class DoublePair extends HandPattern {
         }
         return superCompare;
     }
+
+    toString(){
+        return "{DOUBLE PAIR; Pair1:"+this._pair1+"; Pair2:"+this._pair2+"; Kicker: "+this._kicker+"}"
+    }
+
 }
 
 class ThreeOfAKind extends HandPattern {
@@ -415,6 +420,11 @@ class ThreeOfAKind extends HandPattern {
         }
         return superCompare;
     }
+
+    toString(){
+        return "{THREE-OF-A-KIND; Triple:"+this._triple+"; Other cards: "+this._otherCards+"}"
+    }
+
 }
 
 class Straight extends HandPattern {
@@ -445,6 +455,10 @@ class Straight extends HandPattern {
         }
         return superCompare;
     }
+
+    toString(){
+        return "{STRAIGHT; Cards: "+this._cards+"}"
+    }
 }
 
 class Flush extends HandPattern {
@@ -462,6 +476,10 @@ class Flush extends HandPattern {
             return HandPattern.compareSets(this._cards, other._cards);
         }
         return superCompare;
+    }
+
+    toString(){
+        return "{Flush; Cards:"+this._cards+"}"
     }
 }
 
@@ -493,6 +511,10 @@ class Full extends HandPattern {
         }
         return superCompare;
     }
+
+    toString(){
+        return "{FULL-HOUSE; Triple:"+this._triple+"; Pair:"+this._pair+"}"
+    }
 }
 
 class Poker extends HandPattern {
@@ -521,6 +543,10 @@ class Poker extends HandPattern {
         return superCompare;
     }
 
+    toString(){
+        return "{POKER; Poker:"+this._poker+"; Kicker: "+this._kicker+"}"
+    }
+
 }
 
 class StraightFlush extends Straight {
@@ -528,17 +554,37 @@ class StraightFlush extends Straight {
     constructor(cards) {
         super(cards);
     }
+
+    toString(){
+        return "{STRAIGHT-FLUSH; Cards:" + this._cards + "}";
+    }
 }
 
 class DecisionProcessInput {
     _cardsInTable;
     _cardsInHand;
+    _possibleMoves;
 
-    constructor(cardsInHand, cardsInTable) {
+    constructor(cardsInHand, cardsInTable, possibleMoves) {
         this._cardsInHand = cardsInHand;
         this._cardsInTable = cardsInTable;
+        this._possibleMoves = possibleMoves;
+    }
+
+
+    get cardsInHand() {
+        return this._cardsInHand;
+    }
+
+    get cardsInTable() {
+        return this._cardsInTable;
+    }
+
+    get possibleMoves() {
+        return this._possibleMoves;
     }
 }
+
 
 class Decision {
 
@@ -569,16 +615,343 @@ class Call extends Decision {
 }
 
 class Raise extends Bet {
-    _previousBet;
 
-    constructor(previousBet, howMuch) {
+    constructor(howMuch) {
         super(howMuch);
-        this._previousBet = previousBet;
-        //todo check previousBet < howMuch
     }
 }
 
+class Leave extends Decision {
+
+}
+
+class PlayerInterface {
+    _player;
+    _game;
+
+    constructor(player, game) {
+        this._player = player;
+        this._game = game;
+    }
+
+    async decide(decisionInput) {
+        // assuming that there is always a possible move
+        // this is a method stub, to be overridden;
+        // always folds
+        return new Fold();
+    }
+
+    get game() {
+        return this._game;
+    }
+
+    get player() {
+        return this._player;
+    }
+
+    removeMoney(howMuch) {
+        if (this.player.budget < howMuch) {
+            throw "Not enough money!"
+        }
+        this.player.budget = this.player.budget - howMuch;
+        return howMuch;
+    }
+
+    static decodeDecision(moveName, bettingDecisionCallback = () => -1) {
+        switch (moveName.toLowerCase()) {
+            case "fold":
+                return new Fold();
+            case "check":
+                return new Check();
+            case "bet":
+                return new Bet(bettingDecisionCallback());
+            case "call":
+                return new Call();
+            case "raise":
+                return new Raise(bettingDecisionCallback());
+            case "leave":
+                return new Leave();
+            default:
+                throw "Invalid decision : '" + moveName + "'";
+        }
+    }
+
+    toString(){
+        return this.player.toString();
+    }
+}
+
+class RandomAIPlayerInterface extends PlayerInterface {
+
+    async decide(decisionInput) {
+        let pickedMoveName = decisionInput.possibleMoves[Math.floor(Math.random() * decisionInput.possibleMoves.length)];
+        let currentBudget = this.player.budget;
+        let minBet = this.game.rules.blind;
+        let maxIncreaseOnMinBet = currentBudget - minBet;
+        return PlayerInterface.decodeDecision(pickedMoveName,
+            () => Math.floor(minBet + Math.random() * maxIncreaseOnMinBet));
+    }
+
+}
+
+class CLIPlayerInterface extends PlayerInterface {
+    async decide(decisionInput) {
+        let formattedMoves = decisionInput.possibleMoves.map(m => {
+            switch (m) {
+                case "bet":
+                case "raise":
+                    return m + " how_much ";
+                default:
+                    return m;
+            }
+        })
+        console.log("Possible moves: ")
+        console.log(" - " + formattedMoves.join("\n - "))
+
+        let input = await askQuestion("What do you want to do?");
+        return PlayerInterface.decodeDecision(input.split()[0], () => input.split()[1]);
+    }
+}
+
+class RoundPhase {
+    _round;
+
+    constructor(round) {
+        this._round = round;
+        this._holes = new Map();
+    }
+
+
+    get round() {
+        return this._round;
+    }
+
+    get game() {
+        return this.round.game;
+    }
+
+    get deck() {
+        return this.round.deck;
+    }
+
+    setHoleForPlayer(player, cards) {
+        this.round.setHoleForPlayer(player, cards);
+    }
+
+    getHoleForPlayer(player) {
+        return this.round.getHoleForPlayer(player);
+    }
+
+    execute() {
+        console.log();
+        console.log();
+        console.log("#################################################################");
+        console.log("ROUND " + this.round.roundID);
+        console.log("Money on plate: "+this.round.plate)
+        console.log("Cards on table: "+this.round.table)
+        console.log("Players:\n"+this.round.stringifyHoles());
+    }
+}
+
+class BlindPlacements extends RoundPhase {
+    constructor(round) {
+        super(round);
+    }
+
+    execute() {
+        super.execute();
+        console.log("PLACING BLINDS")
+        let blinderPlayer = this.game.blinderPlayer;
+        let smallBlinderPlayer = this.game.smallBlinderPlayer;
+        if (blinderPlayer.player.budget < this.game.rules.blind) {
+            //TODO deregister player and restart phase
+        }
+        if (smallBlinderPlayer.player.budget < this.game.rules.smallBlind) {
+            //TODO deregister player and restart phase
+        }
+        this.round.putOnPlate(blinderPlayer.removeMoney(this.game.rules.blind))
+        this.round.putOnPlate(smallBlinderPlayer.removeMoney(this.game.rules.smallBlind))
+    }
+}
+
+class Deal extends RoundPhase {
+    constructor(round) {
+        super(round);
+    }
+
+    execute() {
+        super.execute();
+        console.log("DEALING CARDS");
+        for (let pl of this.game.playerInterfaces) {
+            let cards = this.deck.draw(2);
+            this.setHoleForPlayer(pl, cards);
+        }
+    }
+}
+
+class BettingPhase extends RoundPhase {
+    constructor(round) {
+        super(round);
+    }
+}
+
+class PreFlop extends BettingPhase {
+    constructor(round) {
+        super(round);
+    }
+
+    execute() {
+        super.execute();
+        console.log("PRE-FLOP BETTING");
+    }
+}
+
+class TheFlop extends BettingPhase {
+    constructor(round) {
+        super(round);
+    }
+
+    execute() {
+        this.round.putCardOnTable(this.deck.draw()[0]);
+        super.execute();
+        console.log("FLOP BETTING");
+
+    }
+}
+
+class TheTurn extends BettingPhase {
+    constructor(round) {
+
+        super(round);
+    }
+
+    execute() {
+        this.round.putCardOnTable(this.deck.draw()[0]);
+        super.execute();
+        console.log("TURN BETTING");
+    }
+}
+
+class TheRiver extends BettingPhase {
+    constructor(round) {
+        super(round);
+    }
+
+    execute() {
+        this.round.putCardOnTable(this.deck.draw()[0]);
+        super.execute();
+        console.log("RIVER BETTING");
+    }
+}
+
+class ShowDown extends BettingPhase {
+    constructor(round) {
+        super(round);
+    }
+
+    execute() {
+        super.execute();
+        console.log("SHOWDOWN");
+
+        // TODO assuming all players partecipate to the showdown, as a test
+        let hands = new Map();
+        for (let pl of this.game.playerInterfaces){
+            let hole = this.round.getHoleForPlayer(pl);
+            let hand = hole.concat(this.round.table);
+            hands.set(pl, hand)
+        }
+
+        let handPatternEntries = []
+        for (let e of hands.entries()) {
+            handPatternEntries.push([e[0], HandPattern.detect(e[1])]);
+        }
+
+        handPatternEntries.sort((hpe1, hpe2) => hpe2[1].compare(hpe1[1])); // sorted downwards
+        console.log("Showdown ranking: ");
+        let i = 1;
+        for (let e of handPatternEntries) {
+            console.log("Place #" + i + " for " + e[0] + " with: " + e[1]);
+        }
+    }
+}
+
+
 class Round {
+    _plate = 0;
+    _deck = Deck.generate();
+    _table = [];
+    _holes = new Map();
+    _roundID;
+    _game;
+
+    constructor(game, roundID) {
+        this._game = game;
+        this._deck.shuffle();
+        this._roundID = roundID;
+    }
+
+    get plate() {
+        return this._plate;
+    }
+
+    get deck() {
+        return this._deck;
+    }
+
+    get game() {
+        return this._game;
+    }
+
+    get table(){
+        return this._table;
+    }
+
+    putOnPlate(money) {
+        this._plate += money;
+    }
+
+    putCardOnTable(card){
+        this._table.push(card);
+    }
+
+    setHoleForPlayer(player, cards) {
+        this._holes.set(player, cards);
+    }
+
+    getHoleForPlayer(player) {
+        return this._holes.get(player);
+    }
+
+    stringifyHoles(){
+        let result = "";
+        for(let e of this._holes.entries()){
+            let pl = e[0];
+            let h = e[1];
+            result += pl + " has cards: " + h + "\n";
+        }
+        return result;
+    }
+
+    get roundID() {
+        return this._roundID
+    }
+
+    static phases = [
+        BlindPlacements,
+        Deal,
+        PreFlop,
+        TheFlop,
+        TheTurn,
+        TheRiver,
+        ShowDown
+    ]
+
+    executeRound() {
+        for (const Phase of Round.phases) {
+            let phase = new Phase(this);
+            phase.execute()
+        }
+    }
 
 }
 
@@ -592,23 +965,122 @@ class Rules {
     }
 
     static DEFAULT = new Rules(50, 100)
+
+
+    get smallBlind() {
+        return this._smallBlind;
+    }
+
+    get blind() {
+        return this._blind;
+    }
+}
+
+class Player {
+    _name;
+    _budget;
+
+    constructor(name, budget) {
+        this._name = name;
+        this._budget = budget;
+    }
+
+    get budget() {
+        return this._budget;
+    }
+
+    set budget(value) {
+        this._budget = value;
+    }
+
+    get name() {
+        return this._name;
+    }
+
+    toString(){
+        return "Player '" + this.name + "' (budget: " + this.budget + ")";
+    }
+}
+
+class RegisteredPlayer extends Player {
+    _keys;
+
+    constructor(name, budget, keys) {
+        super(name, budget);
+        this._keys = keys;
+    }
+
+    get keys() {
+        return this._keys;
+    }
+
+    set keys(value) {
+        this._keys = value;
+    }
 }
 
 class Game {
-    _players;
+    _playerInterfaces;
     _rules;
+    _roundCounter;
 
     constructor() {
-        this._players = [];
+        this._playerInterfaces = [];
         this._rules = Rules.DEFAULT;
+        this._roundCounter = 0;
     }
 
-    registerPlayer(player) {
-        this._players.append(player)
+    registerPlayer(playerInterface,) {
+        this._playerInterfaces.push(playerInterface)
+    }
+
+    deregisterPlayer(playerInterface) {
+        //TODO design a way to uniquely identify the player who is leaving the game
+        this._playerInterfaces = this._playerInterfaces.filter(
+            p => p.player.keys === playerInterface.player.keys
+        );
+    }
+
+    incCounter() {
+        this._roundCounter++
+    }
+
+    get blinderPlayer() {
+        return this.playerInterfaces[(this.roundCounter + 1) % this.playerInterfaces.length];
+    }
+
+    get smallBlinderPlayer() {
+        return this.playerInterfaces[(this.roundCounter) % this.playerInterfaces.length];
+    }
+
+    get roundCounter() {
+        return this._roundCounter;
+    }
+
+    get playerInterfaces() {
+        return this._playerInterfaces;
+    }
+
+    get rules() {
+        return this._rules;
+    }
+
+    createRound() {
+        let r = new Round(this, this.roundCounter);
+        this.incCounter()
+        return r;
     }
 }
 
 module.exports = {
+    // hand patterns
     idToFaces, idToSuits, Deck, Card, SPADES, CLUBS, DIAMONDS, HEARTS,
+    // hand patterns
     HandPattern, Flush, Pair, Straight, StraightFlush, DoublePair, ThreeOfAKind, Full, Poker,
+    // general game stuff
+    Game, RegisteredPlayer, Player, Rules, Round, PlayerInterface, RandomAIPlayerInterface, CLIPlayerInterface,
+    // round phases
+    RoundPhase, BlindPlacements, Deal, BettingPhase, PreFlop, TheFlop, TheTurn, TheRiver, ShowDown,
+    // decisions
+    DecisionProcessInput, Decision, Fold, Check, Bet, Call, Raise, Leave,
 }

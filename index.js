@@ -13,68 +13,14 @@ const rl = readline.createInterface({
     output: process.stdout
 })
 
-const question = function(q){
+let game = new poker.Game();
+let player1 = new poker.Player("player1", 1000);
+let player2 = new poker.Player("player2", 1000);
+let player3 = new poker.Player("player3", 1000);
+game.registerPlayer(new poker.RandomAIPlayerInterface(player1,game))
+game.registerPlayer(new poker.RandomAIPlayerInterface(player2,game))
+game.registerPlayer(new poker.RandomAIPlayerInterface(player3,game))
 
-    let response;
+let round = game.createRound();
 
-    rl.setPrompt(q);
-    rl.prompt();
-
-    return new Promise(( resolve , reject) => {
-
-        rl.on('line', (userInput) => {
-            response = userInput;
-            rl.close();
-        });
-
-        rl.on('close', () => {
-            resolve(response);
-        });
-
-    });
-
-
-};
-
-
-
-puts(new poker.Card(poker.CLUBS, 5));
-let deck = poker.Deck.generate();
-
-
-deck.shuffle();
-console.log(deck.size);
-
-
-table = deck.draw(3);
-puts("Cards on table:");
-puts(table);
-
-hands = []; // :array of array
-
-for (let i = 0; i < 10; i++){
-    let hand = []
-    hand = hand.concat(table);
-    hand = hand.concat(deck.draw(2));
-    hands.push(hand);
-}
-
-let patterns = []
-
-for(let hand of hands){
-    let pattern = poker.HandPattern.detect(hand);
-
-    console.log(pattern);
-
-    patterns.push(pattern);
-
-    // (async () => {
-    //     await question("Press enter...");
-    // })();
-}
-
-patterns.sort((a, b) => a.compare(b));
-
-puts();
-puts("The winner is: ");
-console.log(patterns[patterns.length - 1]);
+round.executeRound()
