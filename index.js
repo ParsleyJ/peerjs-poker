@@ -14,12 +14,12 @@ const rl = readline.createInterface({
 })
 
 let game = new poker.Game();
-let player1 = new poker.Player("player1", 1000);
-let player2 = new poker.Player("player2", 1000);
-let player3 = new poker.Player("player3", 1000);
-game.registerPlayer(new poker.RandomAIPlayerInterface(player1,game))
-game.registerPlayer(new poker.RandomAIPlayerInterface(player2,game))
-game.registerPlayer(new poker.RandomAIPlayerInterface(player3,game))
+
+for(let i = 1; i <= 10; i++){
+    let player = new poker.Player("player"+i, 1000);
+    game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
+}
+
 
 let round = game.createRound();
 
