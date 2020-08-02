@@ -14,7 +14,7 @@ const peerJs = require('peerjs-nodejs');
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
-})
+});
 
 let game = new poker.Game();
 

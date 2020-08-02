@@ -1,3 +1,4 @@
+const events = require('./pokerEvents');
 const readline = require('readline');
 
 function askQuestion(query) {
@@ -743,7 +744,7 @@ class PlayerInterface {
         return this.player.toString();
     }
 
-    async notifyPlayerWon(player, howMuch) {
+    async notifyEvent(event) {
         // do nothing, to be overriden
     }
 }
@@ -843,8 +844,8 @@ class CLIPlayerInterface extends PlayerInterface {
         }
     }
 
-    async notifyPlayerWon(player, howMuch) {
-        await askQuestion("Notification: " + player + " has won " + howMuch + "! (press enter to continue)")
+    async notifyEvent(event) {
+        await askQuestion("Notification: " + event + " (press enter to continue)");
     }
 }
 
@@ -896,22 +897,25 @@ class BlindPlacements extends RoundPhase {
     async execute() {
         while (true) {
             await super.execute();
+            await this.game.broadCastEvent(
+                new events.PhaseStarted("Blind placements", this.round.plate, this.round.table)
+            );
             console.log("PLACING BLINDS")
             let blinderPlayer = this.game.blinderPlayer;
             let smallBlinderPlayer = this.game.smallBlinderPlayer;
             if (blinderPlayer.player.budget < this.game.rules.blind) {
                 // deregister player and restart phase
-                console.log("" + blinderPlayer + " cannot place the blind for insufficient budget.");
-                console.log("" + blinderPlayer + " is disqualified.");
-                await askQuestion("(press enter to continue)");
+                await this.game.broadCastEvent(
+                    new events.PlayerDisqualified(blinderPlayer, "missing funds for blind")
+                );
                 this.game.deregisterPlayer(blinderPlayer);
                 continue; // restart phase
             }
             if (smallBlinderPlayer.player.budget < this.game.rules.smallBlind) {
                 // deregister player and restart phase
-                console.log("" + smallBlinderPlayer + " cannot place the small blind for insufficient budget.")
-                console.log("" + smallBlinderPlayer + " is disqualified.")
-                await askQuestion("(press enter to continue)");
+                await this.game.broadCastEvent(
+                    new events.PlayerDisqualified(smallBlinderPlayer, "missing funds for small blind")
+                );
                 this.game.deregisterPlayer(smallBlinderPlayer);
                 continue; // restart phase
             }
@@ -930,10 +934,13 @@ class Deal extends RoundPhase {
 
     async execute() {
         await super.execute();
+        await this.game.broadCastEvent(new events.PhaseStarted("Dealing cards", this.round.plate, this.round.table));
         console.log("DEALING CARDS");
+
         for (let pl of this.game.playerInterfaces) {
             let cards = this.deck.draw(2);
             this.setHoleForPlayer(pl, cards);
+            await pl.notifyEvent(new events.CardsDealt(cards));
         }
     }
 }
@@ -1022,11 +1029,13 @@ class BettingPhase extends RoundPhase {
             }
 
             let possibleMoves;
-            if (pl.player.budget < (this.maxBet - previousPlayerBet)) {
+            let neededBets = this.maxBet - previousPlayerBet;
+            if (pl.player.budget < neededBets) {
                 //insufficient funds
                 console.log("" + pl + " has unsufficient funds and can only fold or leave.")
+                await pl.notifyEvent(new events.InsufficientFundsToBet(pl.player.budget, neededBets))
                 possibleMoves = ["fold", "leave"];
-            } else if (pl.player.budget === (this.maxBet - previousPlayerBet)) {
+            } else if (pl.player.budget === neededBets) {
                 // the player has just enough money to call
                 if (aPlayerDidBetOrCall) {
                     possibleMoves = ["fold", "call", "leave"];
@@ -1061,8 +1070,15 @@ class BettingPhase extends RoundPhase {
                     if (decision instanceof LeaveDecision) {
                         this.game.deregisterPlayer(pl);
                         this.unconsiderPlayer(pl);
-                        await askQuestion("" + pl + " decided to leave the game. (press enter to continue)")
+                        await this.game.broadCastEvent(
+                            new events.PlayerLeft(pl)
+                        );
+                    }else{
+                        await this.game.broadCastEvent(
+                            new events.FoldDone(pl)
+                        );
                     }
+                    //TODO check: if there is only one player that did not fold that one wins the round!
                 }
                     break;
 
@@ -1077,6 +1093,7 @@ class BettingPhase extends RoundPhase {
                     console.log("    --> " + pl + "");
                     console.log("New max bet: " + decision.howMuch + "; Plate: " + this.round.plate);
                     console.log("bets: " + prettyStringMap(this.collectedBets));
+                    await this.game.broadCastEvent(new events.BetDone(pl, decision.howMuch));
                     aPlayerDidBetOrCall = true;
                     this.setPlayerSpeakFlag(pl);
                 }
@@ -1090,8 +1107,8 @@ class BettingPhase extends RoundPhase {
                     this.round.putOnPlate(pl.removeMoney(toBeAdded));
                     console.log("    --> " + pl + "");
                     console.log("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
-
                     console.log("bets: " + prettyStringMap(this.collectedBets));
+                    await this.game.broadCastEvent(new events.CallDone(pl, this.maxBet));
                     aPlayerDidBetOrCall = true;
                     this.setPlayerSpeakFlag(pl);
                 }
@@ -1099,6 +1116,7 @@ class BettingPhase extends RoundPhase {
 
                 default:
                 case decision instanceof CheckDecision: {
+                    await this.game.broadCastEvent(new events.CheckDone(pl));
                     //do nothing
                 }
                     break;
@@ -1123,6 +1141,7 @@ class PreFlop extends BettingPhase {
     async execute() {
         await super.execute();
         console.log("PRE-FLOP BETTING");
+        await this.game.broadCastEvent(new events.PhaseStarted("Pre flop betting", this.round.plate, this.round.table));
         // const possibleMoves = ["fold", "check", "bet", "call"];
 
         await this.reachBetConsensus();
@@ -1138,7 +1157,7 @@ class TheFlop extends BettingPhase {
         this.round.putCardOnTable(this.deck.draw()[0]);
         await super.execute();
         console.log("FLOP BETTING");
-
+        await this.game.broadCastEvent(new events.PhaseStarted("Flop betting", this.round.plate, this.round.table));
         await this.reachBetConsensus();
     }
 }
@@ -1152,6 +1171,7 @@ class TheTurn extends BettingPhase {
         this.round.putCardOnTable(this.deck.draw()[0]);
         await super.execute();
         console.log("TURN BETTING");
+        await this.game.broadCastEvent(new events.PhaseStarted("Turn betting", this.round.plate, this.round.table));
         await this.reachBetConsensus();
     }
 
@@ -1166,7 +1186,7 @@ class TheRiver extends BettingPhase {
     async execute() {
         this.round.putCardOnTable(this.deck.draw()[0]);
         await super.execute();
-        console.log("RIVER BETTING");
+        await this.game.broadCastEvent(new events.PhaseStarted("River betting", this.round.plate, this.round.table));
         await this.reachBetConsensus();
     }
 }
@@ -1179,7 +1199,7 @@ class ShowDown extends BettingPhase {
     async execute() {
         await super.execute();
         console.log("SHOWDOWN");
-
+        await this.game.broadCastEvent(new events.PhaseStarted("Showdown", this.round.plate, this.round.table));
         if (this.game.playerInterfaces.every(p => this.round.didPlayerFold(p))) {
             //TODO
 
@@ -1213,9 +1233,7 @@ class ShowDown extends BettingPhase {
         let howMuchWon = this.round.plate;
         console.log("" + winner + " wins " + howMuchWon + "!!!")
         winner.awardMoney(howMuchWon);
-        for (let pi of this.game.playerInterfaces) {
-            await pi.notifyPlayerWon(winner, howMuchWon);
-        }
+        await this.game.broadCastEvent(new events.PlayerWonRound(winner, howMuchWon))
         this.round.plate = 0;
     }
 }
@@ -1318,6 +1336,7 @@ class Round {
     ]
 
     async executeRound() {
+        await this.game.broadCastEvent(new events.RoundStarted(this.roundID, this.game.playerInterfaces));
         let previousBets = new Map();
         for (const Phase of Round.phases) {
             let phase;
@@ -1500,6 +1519,12 @@ class Game {
     endGame() {
         this._endOfGameCallback(this.playerInterfaces, this.roundCounter);
         this._gameStarted = false;
+    }
+
+    async broadCastEvent(event){
+        for (let pl of this.playerInterfaces) {
+            await pl.notifyEvent(event);
+        }
     }
 }
 
