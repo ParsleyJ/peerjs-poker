@@ -51,6 +51,31 @@ const idToFaces = {
     13: ["King", "K"]
 }
 
+
+function cardToUnicodeCard(face, suit) {
+    switch (suit) {
+        case 1: {
+            suit = 0;
+        }
+            break;
+        case 2: {
+            suit = 3;
+        }
+            break;
+        case 3: {
+            suit = 2;
+        }
+            break;
+        case 4: {
+            suit = 1;
+        }
+            break;
+    }
+    let other = 56480 + suit * 16 + face;
+    return String.fromCodePoint(55356, other)
+}
+
+
 class Deck {
     _cards;
 
@@ -152,7 +177,9 @@ class Card {
         else return this.face;
     }
 
-
+    toUnicodeCard() {
+        return cardToUnicodeCard(this.face, this.suit);
+    }
 }
 
 class HandPattern {
@@ -645,7 +672,7 @@ class RaiseDecision extends BetDecision {
     }
 }
 
-class LeaveDecision extends Decision {
+class LeaveDecision extends FoldDecision {
     toString() {
         return "(leave)";
     }
@@ -675,7 +702,7 @@ class PlayerInterface {
         return this._player;
     }
 
-    awardMoney(howMuch){
+    awardMoney(howMuch) {
         this.player.budget += howMuch;
     }
 
@@ -716,7 +743,7 @@ class PlayerInterface {
         return this.player.toString();
     }
 
-    async notifyPlayerWon(player, howMuch){
+    async notifyPlayerWon(player, howMuch) {
         // do nothing, to be overriden
     }
 }
@@ -764,15 +791,19 @@ class RandomAIPlayerInterface extends PlayerInterface {
         }
 
         let decisionVal = Math.random();
-        if(decisionVal < 0.1){ // 10% of cases, folds.
+        if (decisionVal < 0.01) { // 1% of cases, the player leaves the game.
+            return new LeaveDecision();
+        }
+        if (decisionVal < 0.1) { // 9% of cases, folds.
             return new FoldDecision();
         }
-        if(decisionVal < 0.8 && decisionInput.possibleMoves.some(x => x==="call")){ // 70% of cases (when it can), calls.
+        if (decisionVal < 0.8 && decisionInput.possibleMoves.some(x => x === "call")) { // 70% of cases (when it can), calls.
             return new CallDecision();
         }
 
-        // 20% of cases, picks any of the allowed moves (which contains also call and fold).
-        let pickedMoveName = decisionInput.possibleMoves[Math.floor(Math.random() * decisionInput.possibleMoves.length)];
+        // 20% of cases, picks any of the allowed moves (which can also contain call and fold).
+        let filteredMoves = decisionInput.possibleMoves.filter(m => m !== "leave"); // we don't want to leave also here
+        let pickedMoveName = filteredMoves[Math.floor(Math.random() * filteredMoves.length)];
         let currentBudget = this.player.budget;
         let maxIncreaseOnMinBet = currentBudget + previousBet - minimumBet;
         let actualMax = Math.min(maxIncreaseOnMinBet, this._betIncreaseLimit);
@@ -807,7 +838,7 @@ class CLIPlayerInterface extends PlayerInterface {
     }
 
     async notifyPlayerWon(player, howMuch) {
-        await askQuestion("Notification: "+player+" has won "+howMuch+"! (press enter to continue)")
+        await askQuestion("Notification: " + player + " has won " + howMuch + "! (press enter to continue)")
     }
 }
 
@@ -857,19 +888,32 @@ class BlindPlacements extends RoundPhase {
     }
 
     async execute() {
-        await super.execute();
-        console.log("PLACING BLINDS")
-        let blinderPlayer = this.game.blinderPlayer;
-        let smallBlinderPlayer = this.game.smallBlinderPlayer;
-        if (blinderPlayer.player.budget < this.game.rules.blind) {
-            //TODO deregister player and restart phase
+        while (true) {
+            await super.execute();
+            console.log("PLACING BLINDS")
+            let blinderPlayer = this.game.blinderPlayer;
+            let smallBlinderPlayer = this.game.smallBlinderPlayer;
+            if (blinderPlayer.player.budget < this.game.rules.blind) {
+                // deregister player and restart phase
+                console.log("" + blinderPlayer + " cannot place the blind for insufficient budget.");
+                console.log("" + blinderPlayer + " is disqualified.");
+                await askQuestion("(press enter to continue)");
+                this.game.deregisterPlayer(blinderPlayer);
+                continue; // restart phase
+            }
+            if (smallBlinderPlayer.player.budget < this.game.rules.smallBlind) {
+                // deregister player and restart phase
+                console.log("" + smallBlinderPlayer + " cannot place the small blind for insufficient budget.")
+                console.log("" + smallBlinderPlayer + " is disqualified.")
+                await askQuestion("(press enter to continue)");
+                this.game.deregisterPlayer(smallBlinderPlayer);
+                continue; // restart phase
+            }
+            this.round.putOnPlate(blinderPlayer.removeMoney(this.game.rules.blind));
+            this.round.putOnPlate(smallBlinderPlayer.removeMoney(this.game.rules.smallBlind));
+            this.round.requiredBetForCall = this.game.rules.blind;
+            break; // got here, no need to restart
         }
-        if (smallBlinderPlayer.player.budget < this.game.rules.smallBlind) {
-            //TODO deregister player and restart phase
-        }
-        this.round.putOnPlate(blinderPlayer.removeMoney(this.game.rules.blind));
-        this.round.putOnPlate(smallBlinderPlayer.removeMoney(this.game.rules.smallBlind));
-        this.round.requiredBetForCall = this.game.rules.blind;
     }
 }
 
@@ -954,13 +998,12 @@ class BettingPhase extends RoundPhase {
 
     async reachBetConsensus() {
         let playerTurnCounter = 1;
-        let playerInterfaces = this.game.playerInterfaces;
         let aPlayerDidBetOrCall = false;
         while (!(this.everyoneSpokeAtLeastOneTime() && this.reachedBetConsensus())) {
-            let pl = playerInterfaces[playerTurnCounter % playerInterfaces.length]
+            let pl = (this.game.playerInterfaces)[playerTurnCounter % this.game.playerInterfaces.length]
             if (this.round.didPlayerFold(pl)) {
                 // did everyone fold?
-                if (playerInterfaces.every(p => this.round.didPlayerFold(p))) {
+                if (this.game.playerInterfaces.every(p => this.round.didPlayerFold(p))) {
                     break;
                 }
                 playerTurnCounter++;
@@ -975,19 +1018,19 @@ class BettingPhase extends RoundPhase {
             let possibleMoves;
             if (pl.player.budget < (this.maxBet - previousPlayerBet)) {
                 //insufficient funds
-                console.log("" + pl + " has unsufficient funds and can only fold.")
-                possibleMoves = ["fold"];
+                console.log("" + pl + " has unsufficient funds and can only fold or leave.")
+                possibleMoves = ["fold", "leave"];
             } else if (pl.player.budget === (this.maxBet - previousPlayerBet)) {
-                //just enough to call
+                // the player has just enough money to call
                 if (aPlayerDidBetOrCall) {
-                    possibleMoves = ["fold", "call"];
+                    possibleMoves = ["fold", "call", "leave"];
                 } else {
-                    possibleMoves = ["fold", "call", "check"];
+                    possibleMoves = ["fold", "call", "check", "leave"];
                 }
             } else if (aPlayerDidBetOrCall) {// Saul - ehe
-                possibleMoves = ["fold", "raise", "call"];
+                possibleMoves = ["fold", "raise", "call", "leave"];
             } else {
-                possibleMoves = ["fold", "bet", "call", "check"];
+                possibleMoves = ["fold", "bet", "call", "check", "leave"];
             }
 
 
@@ -1009,6 +1052,11 @@ class BettingPhase extends RoundPhase {
                     this.putBet(pl, -1);
                     console.log("Folded players: " + this.round.foldedPlayersSize);
                     this.setPlayerSpeakFlag(pl);
+                    if (decision instanceof LeaveDecision) {
+                        this.game.deregisterPlayer(pl);
+                        this.unconsiderPlayer(pl);
+                        await askQuestion("" + pl + " decided to leave the game. (press enter to continue)")
+                    }
                 }
                     break;
 
@@ -1053,6 +1101,11 @@ class BettingPhase extends RoundPhase {
             playerTurnCounter++;
         }
         this.round.requiredBetForCall = this.maxBet;
+    }
+
+    unconsiderPlayer(pl) {
+        this.collectedBets.delete(pl);
+        this._speakFlags.delete(pl);
     }
 }
 
@@ -1144,7 +1197,7 @@ class ShowDown extends BettingPhase {
         let i = 1;
         let winner;
         for (let e of handPatternEntries) {
-            if(i === 1){
+            if (i === 1) {
                 winner = e[0];
             }
             console.log("Place #" + i + " for " + e[0] + " with: " + e[1]);
@@ -1152,7 +1205,7 @@ class ShowDown extends BettingPhase {
         }
 
         let howMuchWon = this.round.plate;
-        console.log(""+winner+" wins "+howMuchWon+"!!!")
+        console.log("" + winner + " wins " + howMuchWon + "!!!")
         winner.awardMoney(howMuchWon);
         for (let pi of this.game.playerInterfaces) {
             await pi.notifyPlayerWon(winner, howMuchWon);
@@ -1182,7 +1235,7 @@ class Round {
         return this._plate;
     }
 
-    set plate(value){
+    set plate(value) {
         this._plate = value;
     }
 
@@ -1305,8 +1358,10 @@ class Rules {
 class Player {
     _name;
     _budget;
+    _id = -1;
 
-    constructor(name, budget) {
+    constructor(id, name, budget) {
+        this._id = id;
         this._name = name;
         this._budget = budget;
     }
@@ -1323,47 +1378,47 @@ class Player {
         return this._name;
     }
 
+    get id() {
+        return this._id;
+    }
+
     toString() {
         return "Player '" + this.name + "' (budget: " + this.budget + ")";
     }
 }
 
-class RegisteredPlayer extends Player {
-    _keys;
-
-    constructor(name, budget, keys) {
-        super(name, budget);
-        this._keys = keys;
-    }
-
-    get keys() {
-        return this._keys;
-    }
-
-    set keys(value) {
-        this._keys = value;
-    }
-}
 
 class Game {
-    _playerInterfaces;
-    _rules;
-    _roundCounter;
+    _playerInterfaces = [];
+    _rules = Rules.DEFAULT;
+    _roundCounter = 0;
+    _enteringPlayersQueue = [];
+    _keyCounter = 0; //TODO betterSystem to generate unique IDs/keys
+    _gameStarted = false;
+    _endOfGameCallback;
 
-    constructor() {
-        this._playerInterfaces = [];
-        this._rules = Rules.DEFAULT;
-        this._roundCounter = 0;
+
+    constructor(endOfGameCallback) {
+        this._endOfGameCallback = endOfGameCallback;
     }
 
-    registerPlayer(playerInterface,) {
-        this._playerInterfaces.push(playerInterface)
+    askNewID() {
+        return this._keyCounter++;
+    }
+
+    registerPlayer(playerInterface) {
+        if (this.gameStarted) {
+            this._enteringPlayersQueue.push(playerInterface);
+            console.log("" + playerInterface + " joined the lobby, enqueued for next round.");
+        } else {
+            this._playerInterfaces.push(playerInterface);
+            console.log("" + playerInterface + " joined the lobby.");
+        }
     }
 
     deregisterPlayer(playerInterface) {
-        //TODO design a way to uniquely identify the player who is leaving the game
         this._playerInterfaces = this._playerInterfaces.filter(
-            p => p.player.keys === playerInterface.player.keys
+            p => p.player.id !== playerInterface.player.id
         );
     }
 
@@ -1391,10 +1446,54 @@ class Game {
         return this._rules;
     }
 
+    get gameStarted() {
+        return this._gameStarted;
+    }
+
+    async startGame() {
+        if (this.playerInterfaces.length < 2) {
+            throw "Not enough players to start a game.";
+        }
+        this._gameStarted = true;
+        for (let r of this.generateRounds()) {
+            // add all the players in the queue which are not already registered
+            for (let pl of this._enteringPlayersQueue) {
+                if (!this._playerInterfaces.some(pl2 => pl2.player.id === pl.player.id)) {
+                    this._playerInterfaces.push(pl);
+                    console.log("" + pl + " was in the lobby and now enters the game.");
+                }
+            }
+            // empty the queue
+            this._enteringPlayersQueue = this._enteringPlayersQueue.filter(() => false);
+
+
+            if(this.playerInterfaces.length < 2){
+                //TODO await for someone to register?
+                this.endGame();
+            }else{
+                await r.executeRound();
+            }
+        }
+
+    }
+
+    * generateRounds() {
+        while (this._gameStarted) {
+            let r = new Round(this, this.roundCounter);
+            this.incCounter();
+            yield r;
+        }
+    }
+
     createRound() {
         let r = new Round(this, this.roundCounter);
-        this.incCounter()
+        this.incCounter();
         return r;
+    }
+
+    endGame() {
+        this._endOfGameCallback(this.playerInterfaces, this.roundCounter);
+        this._gameStarted = false;
     }
 }
 
@@ -1420,7 +1519,6 @@ module.exports = {
     Poker,
     // general game stuff
     Game,
-    RegisteredPlayer,
     Player,
     Rules,
     Round,
