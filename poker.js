@@ -833,8 +833,14 @@ class CLIPlayerInterface extends PlayerInterface {
         console.log("Possible moves: ")
         console.log(" - " + formattedMoves.join("\n - "))
 
-        let input = await askQuestion("What do you want to do? (required minimum bet =" + minimumBet + "): ");
-        return PlayerInterface.decodeDecision(input.split(" ")[0], () => parseInt(input.split(" ")[1]));
+        while(true){
+            let input = await askQuestion("What do you want to do? (required minimum bet =" + minimumBet + "): ");
+            try{
+                return PlayerInterface.decodeDecision(input.split(" ")[0], () => parseInt(input.split(" ")[1]));
+            }catch (e){
+                console.error(e);
+            }
+        }
     }
 
     async notifyPlayerWon(player, howMuch) {
