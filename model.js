@@ -13,6 +13,14 @@ function askQuestion(query) {
 }
 
 
+function prettyStringMap(map = new Map()) {
+    let result = "{";
+    for (let e of map.entries()) {
+        result += "(" + e[0] + " => " + e[1] + ")";
+    }
+    return result + "}";
+}
+
 const SPADES = 1
 const CLUBS = 2
 const DIAMONDS = 3
@@ -652,7 +660,7 @@ class PlayerInterface {
         this._game = game;
     }
 
-    async decide(decisionInput, minimumBet, previousBet) {
+    async decide(decisionInput, minimumBet, previousBet, bets) {
         // assuming that there is always a possible move
         // this is a method stub, to be overridden;
         // always folds
@@ -667,6 +675,10 @@ class PlayerInterface {
         return this._player;
     }
 
+    awardMoney(howMuch){
+        this.player.budget += howMuch;
+    }
+
     removeMoney(howMuch) {
         if (this.player.budget < howMuch) {
             throw "Not enough money!"
@@ -675,7 +687,7 @@ class PlayerInterface {
         return howMuch;
     }
 
-    allIn(){
+    allIn() {
         let temp = this.player.budget;
         this.player.budget = 0;
         return temp;
@@ -703,24 +715,77 @@ class PlayerInterface {
     toString() {
         return this.player.toString();
     }
+
+    async notifyPlayerWon(player, howMuch){
+        // do nothing, to be overriden
+    }
 }
 
 class RandomAIPlayerInterface extends PlayerInterface {
+    _betIncreaseLimit;
 
-    async decide(decisionInput, minimumBet, previousBet) {
+    constructor(player, game) {
+        super(player, game);
+        this._betIncreaseLimit = this.player.budget / 20;
+    }
+
+
+    awardMoney(howMuch) {
+        super.awardMoney(howMuch);
+        this._betIncreaseLimit = this.player.budget / 20;
+    }
+
+    removeMoney(howMuch) {
+        let removed = super.removeMoney(howMuch);
+        // everytime it spends money, it ***might*** reconsider its bet limit
+        if (Math.random() < 0.3) {
+            this._betIncreaseLimit = this.player.budget / 20;
+        }
+
+        return removed;
+    }
+
+    iAmTheBestBet(bets) {
+        let myBet = bets.get(this.player);
+        if (myBet === null || myBet === undefined || myBet === -1) {
+            return false;
+        }
+        for (let e of bets.entries()) {
+            if (e[0] !== this.player && e[1] > myBet) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    async decide(decisionInput, minimumBet, previousBet, bets) {
+        if (this.iAmTheBestBet(bets)) {
+            return new CallDecision();
+        }
+
+        let decisionVal = Math.random();
+        if(decisionVal < 0.1){ // 10% of cases, folds.
+            return new FoldDecision();
+        }
+        if(decisionVal < 0.8 && decisionInput.possibleMoves.some(x => x==="call")){ // 70% of cases (when it can), calls.
+            return new CallDecision();
+        }
+
+        // 20% of cases, picks any of the allowed moves (which contains also call and fold).
         let pickedMoveName = decisionInput.possibleMoves[Math.floor(Math.random() * decisionInput.possibleMoves.length)];
         let currentBudget = this.player.budget;
         let maxIncreaseOnMinBet = currentBudget + previousBet - minimumBet;
+        let actualMax = Math.min(maxIncreaseOnMinBet, this._betIncreaseLimit);
         return PlayerInterface.decodeDecision(pickedMoveName,
             () => {
-                return Math.floor(minimumBet + Math.random() * maxIncreaseOnMinBet)
+                return Math.floor(minimumBet + Math.random() * actualMax)
             });
     }
 
 }
 
 class CLIPlayerInterface extends PlayerInterface {
-    async decide(decisionInput, minimumBet, previousBet) {
+    async decide(decisionInput, minimumBet, previousBet, bets) {
         let formattedMoves = decisionInput.possibleMoves.map(m => {
             switch (m) {
                 case "bet":
@@ -730,12 +795,19 @@ class CLIPlayerInterface extends PlayerInterface {
                     return m;
             }
         })
+        console.log("Your cards: " + decisionInput.cardsInHand);
+        console.log("Cards on table: " + decisionInput.cardsInTable);
+        console.log("Your budget: " + this.player.budget);
+        console.log("You already betted: " + previousBet);
         console.log("Possible moves: ")
         console.log(" - " + formattedMoves.join("\n - "))
 
-        let input = await askQuestion("What do you want to do? (minbet=" + minimumBet + "," +
-            " previousbet="+previousBet+")");
-        return PlayerInterface.decodeDecision(input.split()[0], () => input.split()[1]);
+        let input = await askQuestion("What do you want to do? (required minimum bet =" + minimumBet + "): ");
+        return PlayerInterface.decodeDecision(input.split(" ")[0], () => parseInt(input.split(" ")[1]));
+    }
+
+    async notifyPlayerWon(player, howMuch) {
+        await askQuestion("Notification: "+player+" has won "+howMuch+"! (press enter to continue)")
     }
 }
 
@@ -825,13 +897,13 @@ class BettingPhase extends RoundPhase {
         this._collectedBets = collectedBets;
     }
 
-    everyoneSpokeAtLeastOneTime(){
+    everyoneSpokeAtLeastOneTime() {
         return this.game.playerInterfaces.every(
             pl => this.round.didPlayerFold(pl) || this._speakFlags.has(pl)
         )
     }
 
-    setPlayerSpeakFlag(player){
+    setPlayerSpeakFlag(player) {
         this._speakFlags.add(player);
     }
 
@@ -840,9 +912,6 @@ class BettingPhase extends RoundPhase {
         let entries = [];
         for (let e of this._collectedBets.entries()) {
             entries.push(e);
-        }
-        if(this.round.foldedPlayersSize === 10){
-            console.log("BANANA"); //TODO REMOVE
         }
         return entries.length === this.game.playerInterfaces.length
             && entries.every(e => e[1] === -1 || e[1] === maxBet);
@@ -887,7 +956,7 @@ class BettingPhase extends RoundPhase {
         let playerTurnCounter = 1;
         let playerInterfaces = this.game.playerInterfaces;
         let aPlayerDidBetOrCall = false;
-        while (!this.everyoneSpokeAtLeastOneTime() || !this.reachedBetConsensus()) {
+        while (!(this.everyoneSpokeAtLeastOneTime() && this.reachedBetConsensus())) {
             let pl = playerInterfaces[playerTurnCounter % playerInterfaces.length]
             if (this.round.didPlayerFold(pl)) {
                 // did everyone fold?
@@ -904,15 +973,15 @@ class BettingPhase extends RoundPhase {
             }
 
             let possibleMoves;
-            if(pl.player.budget < (this.maxBet - previousPlayerBet)) {
+            if (pl.player.budget < (this.maxBet - previousPlayerBet)) {
                 //insufficient funds
-                console.log(""+pl+" has unsufficient funds and can only fold.")
+                console.log("" + pl + " has unsufficient funds and can only fold.")
                 possibleMoves = ["fold"];
             } else if (pl.player.budget === (this.maxBet - previousPlayerBet)) {
                 //just enough to call
-                if(aPlayerDidBetOrCall){
+                if (aPlayerDidBetOrCall) {
                     possibleMoves = ["fold", "call"];
-                }else{
+                } else {
                     possibleMoves = ["fold", "call", "check"];
                 }
             } else if (aPlayerDidBetOrCall) {// Saul - ehe
@@ -921,13 +990,15 @@ class BettingPhase extends RoundPhase {
                 possibleMoves = ["fold", "bet", "call", "check"];
             }
 
+
             let decision = await pl.decide(new DecisionProcessInput(
-                    this.round.getHoleForPlayer(pl),
-                    this.round.table,
-                    possibleMoves,
+                this.round.getHoleForPlayer(pl),
+                this.round.table,
+                possibleMoves,
                 ),
                 this.maxBet,
-                previousPlayerBet
+                previousPlayerBet,
+                this._collectedBets
             )
 
             console.log("(" + pl + ") decided to " + decision);
@@ -936,7 +1007,7 @@ class BettingPhase extends RoundPhase {
                 case decision instanceof FoldDecision: {
                     this.round.setPlayerAsFolded(pl);
                     this.putBet(pl, -1);
-                    console.log("Folded players: "+this.round.foldedPlayersSize)
+                    console.log("Folded players: " + this.round.foldedPlayersSize);
                     this.setPlayerSpeakFlag(pl);
                 }
                     break;
@@ -949,7 +1020,9 @@ class BettingPhase extends RoundPhase {
                     }
                     this.putBet(pl, decision.howMuch);
                     this.round.putOnPlate(pl.removeMoney(toAdded));
-                    console.log("New max bet:" + decision.howMuch);
+                    console.log("    --> " + pl + "");
+                    console.log("New max bet: " + decision.howMuch + "; Plate: " + this.round.plate);
+                    console.log("bets: " + prettyStringMap(this.collectedBets));
                     aPlayerDidBetOrCall = true;
                     this.setPlayerSpeakFlag(pl);
                 }
@@ -961,7 +1034,10 @@ class BettingPhase extends RoundPhase {
                     this.putBet(pl, this.maxBet);
 
                     this.round.putOnPlate(pl.removeMoney(toBeAdded));
-                    console.log("Current max bet:" + (previousPlayerBet+toBeAdded));
+                    console.log("    --> " + pl + "");
+                    console.log("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
+
+                    console.log("bets: " + prettyStringMap(this.collectedBets));
                     aPlayerDidBetOrCall = true;
                     this.setPlayerSpeakFlag(pl);
                 }
@@ -973,6 +1049,7 @@ class BettingPhase extends RoundPhase {
                 }
                     break;
             }
+            console.log();
             playerTurnCounter++;
         }
         this.round.requiredBetForCall = this.maxBet;
@@ -1065,10 +1142,22 @@ class ShowDown extends BettingPhase {
         handPatternEntries.sort((hpe1, hpe2) => hpe2[1].compare(hpe1[1])); // sorted downwards
         console.log("Showdown ranking: ");
         let i = 1;
+        let winner;
         for (let e of handPatternEntries) {
+            if(i === 1){
+                winner = e[0];
+            }
             console.log("Place #" + i + " for " + e[0] + " with: " + e[1]);
             i++;
         }
+
+        let howMuchWon = this.round.plate;
+        console.log(""+winner+" wins "+howMuchWon+"!!!")
+        winner.awardMoney(howMuchWon);
+        for (let pi of this.game.playerInterfaces) {
+            await pi.notifyPlayerWon(winner, howMuchWon);
+        }
+        this.round.plate = 0;
     }
 }
 
@@ -1091,6 +1180,10 @@ class Round {
 
     get plate() {
         return this._plate;
+    }
+
+    set plate(value){
+        this._plate = value;
     }
 
     get deck() {
@@ -1152,7 +1245,7 @@ class Round {
     }
 
     get roundID() {
-        return this._roundID
+        return this._roundID;
     }
 
     static phases = [
@@ -1169,11 +1262,17 @@ class Round {
         let previousBets = new Map();
         for (const Phase of Round.phases) {
             let phase;
-            if(Phase === PreFlop || Phase === TheFlop || Phase === TheTurn || Phase === TheRiver){
+            if (Phase === Deal) {
+                let blinderPlayer = this.game.blinderPlayer;
+                let smallBlinderPlayer = this.game.smallBlinderPlayer;
+                previousBets.set(blinderPlayer, this.game.rules.blind)
+                previousBets.set(smallBlinderPlayer, this.game.rules.smallBlind)
+            }
+            if (Phase === PreFlop || Phase === TheFlop || Phase === TheTurn || Phase === TheRiver) {
                 phase = new Phase(this, previousBets);
                 await phase.execute()
                 previousBets = phase.collectedBets;
-            }else{
+            } else {
                 phase = new Phase(this);
                 await phase.execute()
             }

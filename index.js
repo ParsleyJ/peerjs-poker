@@ -20,7 +20,17 @@ for(let i = 1; i <= 10; i++){
     game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
 }
 
+let human = new poker.Player("CiccioBenzina", 1000);
+game.registerPlayer(new poker.CLIPlayerInterface(human, game))
 
-let round = game.createRound();
+async function runLoop(){
+    while (human.budget > 0){
+        let round = game.createRound();
+        await round.executeRound();
+    }
+}
 
-round.executeRound()
+runLoop();
+
+
+
