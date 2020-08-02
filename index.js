@@ -1,6 +1,6 @@
 const poker = require("./poker");
 const readline = require("readline");
-const peerJs = require('peerjs-nodejs');
+const peerJs = require('peerjs');
 
 // const http = require('http');
 // const fs = require('fs');
