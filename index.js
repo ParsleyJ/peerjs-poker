@@ -1,12 +1,15 @@
-const poker = require("./model");
+const poker = require("./poker");
 const readline = require("readline");
+const peerJs = require('peerjs-nodejs');
 
-const puts = function () {
-    const strings = Array.prototype.map.call(arguments, function (obj) {
-        return '' + obj;
-    });
-    console.log.apply(console, strings);
-};
+// const http = require('http');
+// const fs = require('fs');
+//
+// http.createServer(function (req, res) {
+//      res.writeHead(200, {'Content-Type': 'image/png'});
+//      fs.createReadStream('./image.png').pipe(res);
+// }).listen(3000);
+// console.log('Server running at http://localhost:3000/');
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -16,21 +19,24 @@ const rl = readline.createInterface({
 let game = new poker.Game();
 
 for(let i = 1; i <= 10; i++){
-    let player = new poker.Player("player"+i, 1000);
+    let newID = game.askNewID();
+    let player = new poker.Player(newID, "player"+i, 10_000);
     game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
 }
 
-let human = new poker.Player("CiccioBenzina", 1000);
-game.registerPlayer(new poker.CLIPlayerInterface(human, game))
+let humanID = game.askNewID();
+let human = new poker.Player(humanID, "CiccioBenzina", 10_000);
+game.registerPlayer(new poker.CLIPlayerInterface(human, game));
 
-async function runLoop(){
-    while (human.budget > 0){
-        let round = game.createRound();
-        await round.executeRound();
-    }
-}
+game.startGame();
 
-runLoop();
+setTimeout((function () {
+    let newID = game.askNewID();
+    let player = new poker.Player(newID, "latePlayer", 10_000);
+    game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
+}), 1500);
+
+
 
 
 
