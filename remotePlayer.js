@@ -1,6 +1,10 @@
 const poker = require("./poker");
 const events = require("./pokerEvents");
-import Peer from "peerjs";
+const peerjs = require("peerjs-nodejs");
+
+global.postMessage=(message)=>{
+    console.log(message);
+}
 
 /**
  * Utility class used to implement a "callable" object.
@@ -65,11 +69,10 @@ class ClientRequestMessage extends Message {
         return this._requestArgs;
     }
 
-    toString(){
+    toString() {
         return "(request: " + this.requestName + "; args=[" + this.requestArgs + "])";
     }
 }
-
 
 /**
  * A callable object that returns true when the provided message matches the filter.
@@ -184,11 +187,18 @@ class RemotePlayer extends poker.PlayerInterface {
     _peer;
     _connection;
     _messageQueue = new MessageQueue();
+    _otherPeerID;
 
 
-    constructor(peerID, player, game) {
+    constructor(peerID, otherPeerID, player, game) {
         super(player, game);
         this._peerID = peerID;
+        this._otherPeerID = otherPeerID;
+        this._peer = peerjs(this.peerID, {
+            host: 'localhost',
+            port: 9000,
+            path: '/pokerGame'
+        });
     }
 
 
@@ -197,23 +207,19 @@ class RemotePlayer extends poker.PlayerInterface {
     }
 
 
-    setup() {
-        this._peer = new Peer(this.peerID);
-    }
-
-    connect(to) {
-        this._connection = this._peer.connect(to);
+    connect() {
+        this._connection = this._peer.connect(this._otherPeerID);
         this._connection.serialization = 'json';
         this._connection.on("data", data => {
             if (data instanceof Message) {
                 this._messageQueue.enqueue(data);
             }
-        })
+        });
         this._connection.on("open", async () => {
             for await (const request of this.extractRequests()) {
                 this.handleRequest(request);
             }
-        })
+        });
     }
 
     sendData(data) {
@@ -228,7 +234,7 @@ class RemotePlayer extends poker.PlayerInterface {
 
     awardMoney(howMuch) {
         super.awardMoney(howMuch);
-        this.sendData(["awardMoney", howMuch])
+        this.sendData(["moneyAwarded", howMuch])
     }
 
     removeMoney(howMuch) {
@@ -256,10 +262,52 @@ class RemotePlayer extends poker.PlayerInterface {
         console.log("received request from client: " + request);
         switch (request.requestName) {
             case "budget": {
-                this.player.budget;
+                this.sendData(["budget", this.player.budget]);
             }
                 break;
         }
     }
 }
 
+
+class GameRoom{
+    _peer;
+    _game;
+
+
+    constructor(roomPeerID, game) {
+        this._game = game;
+        this._peer = peerjs(roomPeerID, {
+            host: 'localhost',
+            port: 9000,
+            path: '/pokerGame'
+        });
+    }
+
+
+    listen(){
+        this._peer.on("connection", conn =>{
+            conn.serialization = 'json';
+            conn.on("data", data => {
+                if(data instanceof ClientRequestMessage && data.requestName === "register"){
+                    let args = data.requestArgs;
+                    let name = args[0];
+                    let budget = args[1];
+                    let id = this._game.askNewID();
+                    let player = new poker.Player(id, name, budget);
+                    let remotePlayer = new RemotePlayer(name, conn.peer, player, this._game);
+                    remotePlayer.connect();
+                    this._game.registerPlayer(remotePlayer);
+                }
+            });
+            //TODO handle on connection close
+        })
+    }
+
+}
+
+
+module.exports = {
+    Message, DecisionResponseMessage, ClientRequestMessage, MessageFilter, MessageTypeFilter,
+    decisionFilter, clientRequestFilter, MessageQueue, RemotePlayer, GameRoom
+};

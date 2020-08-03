@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<script></script>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.0.0/dist/peerjs.min.js"></script>
+    <script src="scripts/require.js"></script>
+    <script>
+        $(document).ready(() =>
+            require(['./scripts/poker', './scripts/remotePlayer'], (poker, remotePlay) => {
+
+            let game = new poker.Game();
+
+            for (let i = 1; i <= 10; i++) {
+                let newID = game.askNewID();
+                let player = new poker.Player(newID, "player" + i, 10_000);
+                game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
+            }
+
+            let humanID = game.askNewID();
+            let human = new poker.Player(humanID, "CiccioBenzina", 10_000);
+            game.registerPlayer(new poker.CLIPlayerInterface(human, game));
+
+            game.startGame();
+
+            setTimeout((function () {
+                let newID = game.askNewID();
+                let player = new poker.Player(newID, "latePlayer", 10_000);
+                game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
+            }), 1500);
+
+            let server = new remotePlay.GameRoom("room0", game);
+            server.listen();
+        }));
+    </script>
+    <title>Server</title>
+</head>
+<body>
+
+</body>
+</html>

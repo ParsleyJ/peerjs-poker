@@ -11,6 +11,13 @@
   "license": "ISC",
   "dependencies": {
     "peerjs": "^1.3.1",
-    "peerjs-nodejs": "^1.1.3"
+    "peerjs-nodejs": "^1.1.3",
+    "net": "1.0.2",
+    "wrtc": "0.4.6",
+    "ws": "2.1.0",
+    "xmlhttprequest": "1.8.0"
+  },
+  "devDependencies": {
+    "peer": "^0.5.3"
   }
 }

@@ -1,20 +1,10 @@
 const poker = require("./poker");
 const readline = require("readline");
-const peerJs = require('peerjs');
 
-// const http = require('http');
-// const fs = require('fs');
-//
-// http.createServer(function (req, res) {
-//      res.writeHead(200, {'Content-Type': 'image/png'});
-//      fs.createReadStream('./image.png').pipe(res);
-// }).listen(3000);
-// console.log('Server running at http://localhost:3000/');
+global.postMessage=(message)=>{
+    console.log(message);
+}
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
 
 let game = new poker.Game();
 
@@ -36,6 +26,12 @@ setTimeout((function () {
     game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
 }), 1500);
 
+
+// const peerServer = PeerServer({ port: 9000, path: '/pokerGame' });
+
+//
+// let server = new remotePlay.GameRoom("room0", game);
+// server.listen();
 
 
 
