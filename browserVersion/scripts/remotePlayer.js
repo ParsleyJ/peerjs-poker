@@ -128,7 +128,12 @@ define(require =>{
 
         async decide(decisionInput) {
             this.sendData({messageType:"decisionRequest", input:decisionInput});
-            let decisionMessage = await this._messageQueue.dequeue(decisionFilter);
+            let decisionMessage = (await this._messageQueue.dequeue(decisionFilter)).decision;
+            try {
+                return poker.PlayerInterface.decodeDecision(decisionMessage.split(" ")[0], () => parseInt(decisionMessage.split(" ")[1]));
+            } catch (e) {
+                console.error(e);
+            }
         }
 
 
@@ -151,7 +156,7 @@ define(require =>{
 
 
         async notifyEvent(event) {
-            this.sendData({messageType:"event", event});
+            this.sendData({messageType:"event", eventType:event.getEventType(), event});
         }
 
 
@@ -166,10 +171,16 @@ define(require =>{
             console.log("received request from client: " + request);
             switch (request.requestName) {
                 case "budget": {
-                    this.sendData({messageType:"response", requestName:"budget", budget:this.player.budget});
+                    this.respond(request, {budget: this.player.budget})
                 }
                     break;
             }
+        }
+
+        respond(request, responseData){
+            responseData.messageType = "response";
+            responseData.requestName = request.requestName;
+            this.sendData(responseData);
         }
     }
 

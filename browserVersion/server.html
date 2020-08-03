@@ -21,6 +21,7 @@
                     return new Promise(resolve => {
                         $("#divo")
                             .add("<span>" + question + "</span>")
+                            .add('<br>')
                             .add('<input type="text" id="removeMe" name="removeMe">')
                             .add('<input type="button" id="removeMeButton" title="submit" value="submit">')
                             .add("<br>")
@@ -39,26 +40,30 @@
 
                 let game = new poker.Game();
 
-                for (let i = 1; i <= 2; i++) {
-                    let newID = game.askNewID();
-                    let player = new poker.Player(newID, "player" + i, 10_000);
-                    game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
-                }
+                let newID = game.askNewID();
+                let player = new poker.Player(newID, "playerAI", 10_000);
+                game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
+
 
                 let humanID = game.askNewID();
                 let human = new poker.Player(humanID, "CiccioBenzina", 10_000);
                 game.registerPlayer(new poker.CLIPlayerInterface(human, game));
 
-                game.startGame();
+
 
                 setTimeout((function () {
                     let newID = game.askNewID();
-                    let player = new poker.Player(newID, "latePlayer", 10_000);
+                    let player = new poker.Player(newID, "latePlayerAI", 10_000);
                     game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
                 }), 1500);
 
                 let server = new remotePlay.GameRoom("room0", game);
                 server.listen();
+
+                $("#startGameButton").click(() => {
+                    game.startGame();
+                });
+
 
 
             }));
@@ -66,6 +71,8 @@
     <title>Server</title>
 </head>
 <body style="background-color:white">
+<input type="button" id="startGameButton" title="START GAME" value="START GAME">
+<br>
 <div id="divo"></div>
 </body>
 </html>

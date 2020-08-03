@@ -6,145 +6,186 @@
     <script src="https://unpkg.com/peerjs@1.0.0/dist/peerjs.min.js"></script>
     <script src="scripts/require.js"></script>
     <script>
-        $(document).ready(()=> {
+        $(document).ready(() => {
             require(["./scripts/remotePlayer", "./scripts/pokerEvents", "./scripts/poker"],
                 (remotePlayer, events, poker) => {
 
-                function askQuestion(query) {
-                    console.log("[ASKED VIA PROMPT]: '" + query + "'");
-                    return new Promise(resolve => {
-                        resolve(prompt(query, ""))
-                    });
-                }
+                    textInOutCallbacks = {}
 
-                class PlayerClient {
-                    _peer;
-                    _connection;
-                    _messageQueue = new remotePlayer.MessageQueue();
-                    _playerName;
-                    _initialBudget;
-
-                    constructor(clientID, playerName, initialBudget) {
-                        this._playerName = playerName;
-                        this._initialBudget = initialBudget;
-                        this._peer = new Peer(clientID, {
-                            host: 'localhost',
-                            port: 9000,
-                            path: '/pokerGame'
-                        });
-
-                        // this._peer = new Peer(clientID);
+                    textInOutCallbacks.outCallback = (message) => {
+                        $("#divo")
+                            .add("<span>" + message + "</span>")
+                            .add("<br>")
+                            .appendTo(document.body);
                     }
 
-                    register(to) {
-                        console.log("registering to " + to + " ...");
-                        let registerConnection = this._peer.connect(to);
+                    textInOutCallbacks.promptCallback = question => {
+                        return new Promise(resolve => {
+                            $("#divo")
+                                .add("<span>" + question + "</span>")
+                                .add('<br>')
+                                .add('<input type="text" id="removeMe" name="removeMe">')
+                                .add('<input type="button" id="removeMeButton" title="submit" value="submit">')
+                                .add("<br>")
+                                .appendTo(document.body);
+                            $("#removeMeButton").click(() => {
+                                let $removeMe = $("#removeMe");
+                                let $removeMeButton = $("#removeMeButton")
+                                let val = $removeMe.val();
+                                $removeMe.remove();
+                                $removeMeButton.remove();
+                                resolve(val);
 
-                        if(registerConnection === undefined){
-                            throw "Connection is undefined.";
+                            });
+                        });
+                    }
+
+                    function puts(str) {
+                        if (str === undefined) {
+                            console.log();
+                            textInOutCallbacks.outCallback("");
+                        } else {
+                            console.log(str);
+                            textInOutCallbacks.outCallback(str);
                         }
-                        registerConnection.serialization = 'json';
-                        registerConnection.on("open", () => {
-                            console.log("connection open with " + to);
-                            registerConnection.send({
-                                messageType:"request",
-                                requestName:"register",
-                                playerName: this._playerName,
-                                playerBudget: this._initialBudget
-                            });
-                        })
+                    }
 
-                        this._peer.on("connection", conn => {
-                            console.log("a peer connected: " + conn.peer);
-                            this._connection = conn;
-                            this._connection.serialization = 'json';
-                            this._connection.on("data", data => {
-                                console.log("data received: ");
-                                console.log(data);
-                                if (data.messageType !== undefined) {
-                                    console.log("enqueueing the message.")
-                                    this._messageQueue.enqueue(data);
+                    class PlayerClient {
+                        _peer;
+                        _connection;
+                        _messageQueue = new remotePlayer.MessageQueue();
+                        _playerName;
+                        _initialBudget;
+
+                        constructor(clientID, playerName, initialBudget) {
+                            this._playerName = playerName;
+                            this._initialBudget = initialBudget;
+                            this._peer = new Peer(clientID, {
+                                host: 'localhost',
+                                port: 9000,
+                                path: '/pokerGame'
+                            });
+
+                            // this._peer = new Peer(clientID);
+                        }
+
+                        register(to) {
+                            puts("registering to " + to + " ...");
+                            let registerConnection = this._peer.connect(to);
+
+                            if (registerConnection === undefined) {
+                                throw "Connection is undefined.";
+                            }
+                            registerConnection.serialization = 'json';
+                            registerConnection.on("open", () => {
+                                puts("connection open with " + to);
+                                registerConnection.send({
+                                    messageType: "request",
+                                    requestName: "register",
+                                    playerName: this._playerName,
+                                    playerBudget: this._initialBudget
+                                });
+                            })
+
+                            this._peer.on("connection", conn => {
+                                puts("a peer connected: " + conn.peer);
+                                this._connection = conn;
+                                this._connection.serialization = 'json';
+                                this._connection.on("data", data => {
+                                    console.log("data received: ");
+                                    console.log(data);
+                                    if (data.messageType !== undefined) {
+                                        console.log("enqueueing the message.")
+                                        this._messageQueue.enqueue(data);
+                                    }
+                                });
+
+                                this._connection.on("open", async () => {
+                                    for await (const message of this.extractMessages(
+                                        m => m === undefined || m.messageType !== "response"
+                                    )) {
+                                        await this.handleMessage(message);
+                                    }
+                                })
+                            })
+                        }
+
+                        async* extractMessages() {
+                            while (true) {
+                                yield await this._messageQueue.dequeue();
+                            }
+                        }
+
+                        sendData(message) {
+                            this._connection.send(message);
+                        }
+
+                        async request(requestName, argument) {
+                            this.sendData({messageType: "request", requestName, argument});
+                            return await this._messageQueue.dequeue(m => m !== undefined && m.messageType === "response");
+                        }
+
+                        async handleMessage(message) {
+                            console.log("Received message from remote interface: ");
+                            console.log(message)
+                            if (message !== undefined && message.messageType !== undefined) {
+                                switch (message.messageType) {
+                                    case "event": {
+                                        let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
+                                        textInOutCallbacks.outCallback("Notification: " + event);
+                                    }
+                                        break;
+
+                                    case "decisionRequest": {
+                                        let decision = await this.handleDecisionRequest(message.input);
+                                        this.sendData({messageType: "decision", decision});
+                                    }
+                                        break;
                                 }
-                            });
+                            }
+                        }
 
-                            this._connection.on("open", async () => {
-                                for await (const message of this.extractMessages()) {
-                                    await this.handleMessage(message);
+                        async handleDecisionRequest(decisionInput) {
+                            let formattedMoves = decisionInput._possibleMoves.map(m => {
+                                switch (m) {
+                                    case "bet":
+                                    case "raise":
+                                        return m + " how_much ";
+                                    default:
+                                        return m;
                                 }
                             })
-                        })
-                    }
+                            puts("Your cards: " + decisionInput._cardsInHand.map(
+                                c => poker.Card.fromObj(c)
+                            ));
+                            puts("Cards on table: " + decisionInput._cardsInTable.map(
+                                c => poker.Card.fromObj(c)
+                            ));
+                            puts("Your budget: " + (await this.request("budget")).budget);
+                            puts("You already betted: " + decisionInput._myPreviousBet);
+                            puts("Possible moves: ")
+                            puts(" - " + formattedMoves.join("\n - "))
 
-                    async* extractMessages() {
-                        while (true) {
-                            yield await this._messageQueue.dequeue();
+                            //TODO while (true) {
+                            let input = await textInOutCallbacks.promptCallback("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ");
+                            this.sendData({messageType: "decision", decision: input});
+                            //TODO await for ok from server, otherwise re-ask
+                            //TODO }
                         }
                     }
 
-                    sendData(message){
-                        this._connection.send(message);
-                    }
 
-                    async handleMessage(message) {
-                        console.log("Received message from remote interface: ");
-                        console.log(message)
-                        if(message!==undefined && message.messageType !== undefined) {
-                            switch (message.messageType) {
-                                case "event": {
-                                    await askQuestion("Notification: " + message.event + " (press enter to continue)");
-                                }
-                                    break;
-
-                                case "decisionRequest":{
-                                    let decision = await this.handleDecisionRequest(message.input);
-                                    this.sendData({messageType: "decision", decision});
-                                }break;
-                            }
-                        }
-                    }
-
-                    async handleDecisionRequest(decisionInput){
-                        let formattedMoves = decisionInput.possibleMoves.map(m => {
-                            switch (m) {
-                                case "bet":
-                                case "raise":
-                                    return m + " how_much ";
-                                default:
-                                    return m;
-                            }
-                        })
-                        console.log("Your cards: " + decisionInput.cardsInHand);
-                        console.log("Cards on table: " + decisionInput.cardsInTable);
-                        console.log("Your budget: " + this.player.budget);
-                        console.log("You already betted: " + decisionInput.myPreviousBet);
-                        console.log("Possible moves: ")
-                        console.log(" - " + formattedMoves.join("\n - "))
-
-                        while (true) {
-                            let input = await askQuestion("What do you want to do? (required minimum bet =" + decisionInput.minBet + "): ");
-                            try {
-                                return poker.PlayerInterface.decodeDecision(input.split(" ")[0], () => parseInt(input.split(" ")[1]));
-                            } catch (e) {
-                                console.error(e);
-                            }
-                        }
-                    }
-                }
+                    let pl = new PlayerClient("ciccio", "ciccioRemoto", 30_000);
+                    puts("registering ...");
+                    setTimeout((() => pl.register("room0")), 1500);
 
 
-
-                let pl = new PlayerClient("ciccio", "ciccioRemoto", 30_000);
-                console.log("registering ...");
-                setTimeout((()=>pl.register("room0")), 1500);
-
-
-
-            });
+                });
         });
     </script>
     <title>Client</title>
 </head>
-<body>
-
+<body style="background-color:white">
+<div id="divo"></div>
 </body>
 </html>

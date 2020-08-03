@@ -1,7 +1,40 @@
 define((require) => {
+    const {Card} = require("./Card");
+
 
     class PokerEvent {
+        getEventType(){
+            return "PokerEvent"
+        }
 
+        static eventFromObj(eventType, object){
+            switch (eventType){
+                case "PlayerLeft":
+                    return new PlayerLeft(object._player);
+                case "PlayerDisqualified":
+                    return new PlayerDisqualified(object._player, object._reason);
+                case "PlayerWonRound":
+                    return new PlayerWonRound(object._player, object._howMuch);
+                case "PhaseStarted":
+                    return new PhaseStarted(object._phaseName, object._plate, object._table);
+                case "RoundStarted":
+                    return new RoundStarted(object._roundID, object._players);
+                case "CardsDealt":
+                    return new CardsDealt(object._cards.map( c => Card.fromObj(c)));
+                case "InsufficientFundsToBet":
+                    return new InsufficientFundsToBet(object._money, object._moneyNeeded);
+                case "BetDone":
+                    return new BetDone(object._player, object._betAmount);
+                case "FoldDone":
+                    return new FoldDone(object._player);
+                case "CallDone":
+                    return new CallDone(object._player, object._betAmount);
+                case "CheckDone":
+                    return new CheckDone(object._player);
+                default:
+                    return new PokerEvent();
+            }
+        }
     }
 
     class PlayerWonRound extends PokerEvent {
@@ -14,6 +47,10 @@ define((require) => {
             this._howMuch = howMuch;
         }
 
+
+        getEventType() {
+            return "PlayerWonRound";
+        }
 
         get player() {
             return this._player;
@@ -39,6 +76,10 @@ define((require) => {
         }
 
 
+        getEventType() {
+            return "PlayerDisqualified";
+        }
+
         get player() {
             return this._player;
         }
@@ -62,6 +103,10 @@ define((require) => {
         }
 
 
+        getEventType() {
+            return "PlayerLeft";
+        }
+
         get player() {
             return this._player;
         }
@@ -80,6 +125,10 @@ define((require) => {
             this._player = player;
         }
 
+
+        getEventType() {
+            return "FoldDone";
+        }
 
         get player() {
             return this._player;
@@ -101,6 +150,10 @@ define((require) => {
             this._players = players;
         }
 
+
+        getEventType() {
+            return "RoundStarted";
+        }
 
         get roundID() {
             return this._roundID;
@@ -130,6 +183,10 @@ define((require) => {
         }
 
 
+        getEventType() {
+            return "PhaseStarted";
+        }
+
         get phaseName() {
             return this._phaseName;
         }
@@ -158,6 +215,10 @@ define((require) => {
         }
 
 
+        getEventType() {
+            return "CardsDealt";
+        }
+
         get cards() {
             return this._cards;
         }
@@ -178,6 +239,10 @@ define((require) => {
             this._moneyNeeded = moneyNeeded;
         }
 
+
+        getEventType() {
+            return "InsufficientFundsToBet";
+        }
 
         get money() {
             return this._money;
@@ -205,6 +270,10 @@ define((require) => {
         }
 
 
+        getEventType() {
+            return "BetDone";
+        }
+
         get player() {
             return this._player;
         }
@@ -230,6 +299,10 @@ define((require) => {
         }
 
 
+        getEventType() {
+            return "CallDone";
+        }
+
         get player() {
             return this._player;
         }
@@ -252,6 +325,10 @@ define((require) => {
             this._player = player;
         }
 
+
+        getEventType() {
+            return "CheckDone";
+        }
 
         get player() {
             return this._player;
