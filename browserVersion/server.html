@@ -10,33 +10,62 @@
         $(document).ready(() =>
             require(['./scripts/poker', './scripts/remotePlayer'], (poker, remotePlay) => {
 
-            let game = new poker.Game();
+                poker.textInOutCallbacks.outCallback = (message) => {
+                    $("#divo")
+                        .add("<span>" + message + "</span>")
+                        .add("<br>")
+                        .appendTo(document.body);
+                }
 
-            for (let i = 1; i <= 10; i++) {
-                let newID = game.askNewID();
-                let player = new poker.Player(newID, "player" + i, 10_000);
-                game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
-            }
+                poker.textInOutCallbacks.promptCallback = question => {
+                    return new Promise(resolve => {
+                        $("#divo")
+                            .add("<span>" + question + "</span>")
+                            .add('<input type="text" id="removeMe" name="removeMe">')
+                            .add('<input type="button" id="removeMeButton" title="submit" value="submit">')
+                            .add("<br>")
+                            .appendTo(document.body);
+                        $("#removeMeButton").click(() => {
+                            let $removeMe = $("#removeMe");
+                            let $removeMeButton = $("#removeMeButton")
+                            let val = $removeMe.val();
+                            $removeMe.remove();
+                            $removeMeButton.remove();
+                            resolve(val);
 
-            let humanID = game.askNewID();
-            let human = new poker.Player(humanID, "CiccioBenzina", 10_000);
-            game.registerPlayer(new poker.CLIPlayerInterface(human, game));
+                        });
+                    });
+                }
 
-            game.startGame();
+                let game = new poker.Game();
 
-            setTimeout((function () {
-                let newID = game.askNewID();
-                let player = new poker.Player(newID, "latePlayer", 10_000);
-                game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
-            }), 1500);
+                for (let i = 1; i <= 2; i++) {
+                    let newID = game.askNewID();
+                    let player = new poker.Player(newID, "player" + i, 10_000);
+                    game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
+                }
 
-            let server = new remotePlay.GameRoom("room0", game);
-            server.listen();
-        }));
+                let humanID = game.askNewID();
+                let human = new poker.Player(humanID, "CiccioBenzina", 10_000);
+                game.registerPlayer(new poker.CLIPlayerInterface(human, game));
+
+                game.startGame();
+
+                setTimeout((function () {
+                    let newID = game.askNewID();
+                    let player = new poker.Player(newID, "latePlayer", 10_000);
+                    game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
+                }), 1500);
+
+                let server = new remotePlay.GameRoom("room0", game);
+                server.listen();
+
+
+            }));
     </script>
     <title>Server</title>
 </head>
-<body>
-
+<body style="background-color:white">
+<div id="divo"></div>
 </body>
 </html>

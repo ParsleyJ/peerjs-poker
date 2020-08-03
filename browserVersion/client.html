@@ -7,7 +7,8 @@
     <script src="scripts/require.js"></script>
     <script>
         $(document).ready(()=> {
-            require(["./scripts/remotePlayer"], (remotePlayer) => {
+            require(["./scripts/remotePlayer", "./scripts/pokerEvents", "./scripts/poker"],
+                (remotePlayer, events, poker) => {
 
                 function askQuestion(query) {
                     console.log("[ASKED VIA PROMPT]: '" + query + "'");
@@ -31,47 +32,46 @@
                             port: 9000,
                             path: '/pokerGame'
                         });
+
+                        // this._peer = new Peer(clientID);
                     }
 
                     register(to) {
                         console.log("registering to " + to + " ...");
-                        this._connection = this._peer.connect(to);
-                        this._connection.serialization = 'json';
-                        this._connection.on("open", () => {
+                        let registerConnection = this._peer.connect(to);
+
+                        if(registerConnection === undefined){
+                            throw "Connection is undefined.";
+                        }
+                        registerConnection.serialization = 'json';
+                        registerConnection.on("open", () => {
                             console.log("connection open with " + to);
-                            this._connection.send(
-                                new remotePlayer.ClientRequestMessage("register", [this._playerName, this._initialBudget])
-                            );
+                            registerConnection.send({
+                                messageType:"request",
+                                requestName:"register",
+                                playerName: this._playerName,
+                                playerBudget: this._initialBudget
+                            });
                         })
 
                         this._peer.on("connection", conn => {
                             console.log("a peer connected: " + conn.peer);
-                            conn.serialization = 'json';
-                            conn.on("data", data => {
-                                console.log("data received: " + data);
-                                if (data instanceof remotePlayer.Message) {
+                            this._connection = conn;
+                            this._connection.serialization = 'json';
+                            this._connection.on("data", data => {
+                                console.log("data received: ");
+                                console.log(data);
+                                if (data.messageType !== undefined) {
                                     console.log("enqueueing the message.")
                                     this._messageQueue.enqueue(data);
                                 }
                             });
 
-                            conn.on("open", async () => {
+                            this._connection.on("open", async () => {
                                 for await (const message of this.extractMessages()) {
                                     await this.handleMessage(message);
                                 }
                             })
-                        })
-
-
-                        this._connection.on("data", data => {
-                            if (data instanceof remotePlayer.Message) {
-                                this._messageQueue.enqueue(data);
-                            }
-                        })
-                        this._connection.on("open", async () => {
-                            for await (const message of this.extractMessages()) {
-                                await this.handleMessage(message);
-                            }
                         })
                     }
 
@@ -81,13 +81,52 @@
                         }
                     }
 
+                    sendData(message){
+                        this._connection.send(message);
+                    }
+
                     async handleMessage(message) {
-                        console.log("Received message from remote interface: " + message);
-                        switch (message[0]) {
-                            case "event": {
-                                await askQuestion("Notification: " + message[1] + " (press enter to continue)");
+                        console.log("Received message from remote interface: ");
+                        console.log(message)
+                        if(message!==undefined && message.messageType !== undefined) {
+                            switch (message.messageType) {
+                                case "event": {
+                                    await askQuestion("Notification: " + message.event + " (press enter to continue)");
+                                }
+                                    break;
+
+                                case "decisionRequest":{
+                                    let decision = await this.handleDecisionRequest(message.input);
+                                    this.sendData({messageType: "decision", decision});
+                                }break;
                             }
-                                break;
+                        }
+                    }
+
+                    async handleDecisionRequest(decisionInput){
+                        let formattedMoves = decisionInput.possibleMoves.map(m => {
+                            switch (m) {
+                                case "bet":
+                                case "raise":
+                                    return m + " how_much ";
+                                default:
+                                    return m;
+                            }
+                        })
+                        console.log("Your cards: " + decisionInput.cardsInHand);
+                        console.log("Cards on table: " + decisionInput.cardsInTable);
+                        console.log("Your budget: " + this.player.budget);
+                        console.log("You already betted: " + decisionInput.myPreviousBet);
+                        console.log("Possible moves: ")
+                        console.log(" - " + formattedMoves.join("\n - "))
+
+                        while (true) {
+                            let input = await askQuestion("What do you want to do? (required minimum bet =" + decisionInput.minBet + "): ");
+                            try {
+                                return poker.PlayerInterface.decodeDecision(input.split(" ")[0], () => parseInt(input.split(" ")[1]));
+                            } catch (e) {
+                                console.error(e);
+                            }
                         }
                     }
                 }

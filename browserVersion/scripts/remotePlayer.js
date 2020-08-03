@@ -4,118 +4,16 @@ define(require =>{
 
 
     /**
-     * Utility class used to implement a "callable" object.
-     * Extend this class and override the __call__ method to make use of the
-     * '()' operator.
-     */
-    class Functor extends Function {
-        __self__;
-
-        constructor() {
-            super('...args', 'return this.__self__.__call__(...args)')
-            let self = this.bind(this)
-            this.__self__ = self
-            return self;
-        }
-
-
-        __call__(...args) {
-            //override this;
-        }
-    }
-
-    class Message {
-
-    }
-
-    class DecisionResponseMessage extends Message {
-        _decision;
-
-
-        constructor(decision) {
-            super();
-            this._decision = decision;
-        }
-
-
-        get decision() {
-            return this._decision;
-        }
-    }
-
-    class ClientRequestMessage extends Message {
-        _requestName;
-        _requestArgs;
-
-        constructor(requestName, requestArgs) {
-            super();
-            this._requestName = requestName;
-            if (requestArgs) {
-                this._requestArgs = requestArgs;
-            } else {
-                this._requestArgs = [];
-            }
-        }
-
-
-        get requestName() {
-            return this._requestName;
-        }
-
-        get requestArgs() {
-            return this._requestArgs;
-        }
-
-        toString() {
-            return "(request: " + this.requestName + "; args=[" + this.requestArgs + "])";
-        }
-    }
-
-    /**
-     * A callable object that returns true when the provided message matches the filter.
-     */
-    class MessageFilter extends Functor {
-
-        __call__(message) {
-            return true;
-        }
-    }
-
-    /**
-     * Message filter that matches messages that are instances of the
-     * specified class.
-     */
-    class MessageTypeFilter extends MessageFilter {
-        _type;
-
-
-        constructor(type) {
-            super();
-            this._type = type;
-        }
-
-
-        get type() {
-            return this._type;
-        }
-
-
-        __call__(message) {
-            return message instanceof this.type;
-        }
-    }
-
-    /**
      * Message filter that matches DecisionResponseMessages
-     * @type {MessageTypeFilter}
+     * @type {function(any):boolean}
      */
-    const decisionFilter = new MessageTypeFilter(DecisionResponseMessage);
+    const decisionFilter = m => m.messageType === "decision";
 
     /**
      * Message filter that matches ClientRequestMessages
-     * @type {MessageTypeFilter}
+     * @type {function(any):boolean}
      */
-    const clientRequestFilter = new MessageTypeFilter(ClientRequestMessage);
+    const clientRequestFilter = m => m.messageType === "request";
 
     /**
      * A message queue with promise-returning dequeue;
@@ -191,11 +89,12 @@ define(require =>{
             super(player, game);
             this._peerID = peerID;
             this._otherPeerID = otherPeerID;
-            this._peer = peerjs(this.peerID, {
+            this._peer = new Peer(this.peerID, {
                 host: 'localhost',
                 port: 9000,
                 path: '/pokerGame'
             });
+            // this._peer = new Peer(this.peerID);
         }
 
 
@@ -208,7 +107,7 @@ define(require =>{
             this._connection = this._peer.connect(this._otherPeerID);
             this._connection.serialization = 'json';
             this._connection.on("data", data => {
-                if (data instanceof Message) {
+                if (data.messageType!==undefined) {
                     this._messageQueue.enqueue(data);
                 }
             });
@@ -221,25 +120,27 @@ define(require =>{
 
 
         sendData(data) {
+            console.log("Sending data to "+this.peerID+": ")
+            console.log(data);
             this._connection.send(data);
         }
 
 
-        async decide(decisionInput, minimumBet, previousBet, bets) {
-            this.sendData([decisionInput, minimumBet, previousBet, bets]);
-            return await this._messageQueue.dequeue(decisionFilter);
+        async decide(decisionInput) {
+            this.sendData({messageType:"decisionRequest", input:decisionInput});
+            let decisionMessage = await this._messageQueue.dequeue(decisionFilter);
         }
 
 
         awardMoney(howMuch) {
             super.awardMoney(howMuch);
-            this.sendData(["moneyAwarded", howMuch])
+            this.sendData({messageType:"moneyAwarded", howMuch})
         }
 
 
         removeMoney(howMuch) {
             let removed = super.removeMoney(howMuch);
-            this.sendData(["moneyRemoved", howMuch]);
+            this.sendData({messageType:"moneyRemoved", howMuch});
             return removed;
         }
 
@@ -250,7 +151,7 @@ define(require =>{
 
 
         async notifyEvent(event) {
-            this.sendData(["event", event]);
+            this.sendData({messageType:"event", event});
         }
 
 
@@ -265,7 +166,7 @@ define(require =>{
             console.log("received request from client: " + request);
             switch (request.requestName) {
                 case "budget": {
-                    this.sendData(["budget", this.player.budget]);
+                    this.sendData({messageType:"response", requestName:"budget", budget:this.player.budget});
                 }
                     break;
             }
@@ -285,6 +186,7 @@ define(require =>{
                 port: 9000,
                 path: '/pokerGame'
             });
+            // this._peer = new Peer(roomPeerID);
         }
 
 
@@ -293,10 +195,9 @@ define(require =>{
                 console.log("connection opened with " + conn.peer);
                 conn.serialization = 'json';
                 conn.on("data", data => {
-                    if (data instanceof ClientRequestMessage && data.requestName === "register") {
-                        let args = data.requestArgs;
-                        let name = args[0];
-                        let budget = args[1];
+                    if (data.messageType === "request" && data.requestName === "register") {
+                        let name = data.playerName;
+                        let budget = data.playerBudget;
                         let id = this._game.askNewID();
                         let player = new poker.Player(id, name, budget);
                         let remotePlayer = new RemotePlayer(name, conn.peer, player, this._game);
@@ -312,7 +213,6 @@ define(require =>{
 
 
     return {
-        Message, DecisionResponseMessage, ClientRequestMessage, MessageFilter, MessageTypeFilter,
         decisionFilter, clientRequestFilter, MessageQueue, RemotePlayer, GameRoom
     };
 

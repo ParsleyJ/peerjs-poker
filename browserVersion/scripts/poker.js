@@ -1,11 +1,12 @@
 define((require) => {
     const events = require('./pokerEvents');
 
-    function askQuestion(query) {
-        console.log("[ASKED VIA PROMPT]: '" + query + "'");
-        return new Promise(resolve => {
-            resolve(prompt(query, ""))
-        });
+    const textInOutCallbacks = {
+        outCallback: () => {
+        },
+        promptCallback: (question) => {
+            return new Promise(resolve => resolve(prompt(question, "")));
+        }
     }
 
 
@@ -15,6 +16,20 @@ define((require) => {
             result += "(" + e[0] + " => " + e[1] + ")";
         }
         return result + "}";
+    }
+
+    function puts(str) {
+        if (str === undefined) {
+            console.log();
+            textInOutCallbacks.outCallback("");
+        } else {
+            console.log(str);
+            textInOutCallbacks.outCallback(str);
+        }
+    }
+
+    async function askQuestion(query) {
+        return textInOutCallbacks.promptCallback(query);
     }
 
     const SPADES = 1
@@ -134,7 +149,7 @@ define((require) => {
         }
 
         toString() {
-            return "<" + idToFaces[this.face][1] + idToSuits[this.suit][1] + ">";
+            return "< " + idToFaces[this.face][1] + " " + idToSuits[this.suit][1] + " >";
         }
 
         toBigString() {
@@ -595,12 +610,25 @@ define((require) => {
         _cardsInTable;
         _cardsInHand;
         _possibleMoves;
+        _minBet;
+        _myPreviousBet;
+        _collectedBets;
 
-        constructor(cardsInHand, cardsInTable, possibleMoves) {
-            this._cardsInHand = cardsInHand;
+
+        constructor(cardsInTable, cardsInHand, possibleMoves, minBet, myPreviousBet, collectedBets) {
             this._cardsInTable = cardsInTable;
+            this._cardsInHand = cardsInHand;
             this._possibleMoves = possibleMoves;
+            this._minBet = minBet;
+            this._myPreviousBet = myPreviousBet;
+            this._collectedBets = collectedBets;
         }
+
+// constructor(cardsInHand, cardsInTable, possibleMoves) {
+        //     this._cardsInHand = cardsInHand;
+        //     this._cardsInTable = cardsInTable;
+        //     this._possibleMoves = possibleMoves;
+        // }
 
 
         get cardsInHand() {
@@ -613,6 +641,19 @@ define((require) => {
 
         get possibleMoves() {
             return this._possibleMoves;
+        }
+
+
+        get minBet() {
+            return this._minBet;
+        }
+
+        get myPreviousBet() {
+            return this._myPreviousBet;
+        }
+
+        get collectedBets() {
+            return this._collectedBets;
         }
     }
 
@@ -683,7 +724,7 @@ define((require) => {
             this._game = game;
         }
 
-        async decide(decisionInput, minimumBet, previousBet, bets) {
+        async decide(decisionInput) {
             // assuming that there is always a possible move
             // this is a method stub, to be overridden;
             // always folds
@@ -769,20 +810,20 @@ define((require) => {
         }
 
         iAmTheBestBet(bets) {
-            let myBet = bets.get(this.player);
+            let myBet = bets[this.player.name]
             if (myBet === null || myBet === undefined || myBet === -1) {
                 return false;
             }
-            for (let e of bets.entries()) {
-                if (e[0] !== this.player && e[1] > myBet) {
+            for (let pl in bets) {
+                if (bets[pl].player !== this.player.name && bets[pl].bet > myBet) {
                     return false;
                 }
             }
             return true;
         }
 
-        async decide(decisionInput, minimumBet, previousBet, bets) {
-            if (this.iAmTheBestBet(bets)) {
+        async decide(decisionInput) {
+            if (this.iAmTheBestBet(decisionInput.collectedBets)) {
                 return new CallDecision();
             }
 
@@ -801,11 +842,11 @@ define((require) => {
             let filteredMoves = decisionInput.possibleMoves.filter(m => m !== "leave"); // we don't want to leave also here
             let pickedMoveName = filteredMoves[Math.floor(Math.random() * filteredMoves.length)];
             let currentBudget = this.player.budget;
-            let maxIncreaseOnMinBet = currentBudget + previousBet - minimumBet;
+            let maxIncreaseOnMinBet = currentBudget + decisionInput.myPreviousBet - decisionInput.minBet;
             let actualMax = Math.min(maxIncreaseOnMinBet, this._betIncreaseLimit);
             return PlayerInterface.decodeDecision(pickedMoveName,
                 () => {
-                    return Math.floor(minimumBet + Math.random() * actualMax)
+                    return Math.floor(decisionInput.minBet + Math.random() * actualMax)
                 });
         }
 
@@ -813,7 +854,7 @@ define((require) => {
 
     class CLIPlayerInterface extends PlayerInterface {
 
-        async decide(decisionInput, minimumBet, previousBet, bets) {
+        async decide(decisionInput) {
             let formattedMoves = decisionInput.possibleMoves.map(m => {
                 switch (m) {
                     case "bet":
@@ -823,15 +864,15 @@ define((require) => {
                         return m;
                 }
             })
-            console.log("Your cards: " + decisionInput.cardsInHand);
-            console.log("Cards on table: " + decisionInput.cardsInTable);
-            console.log("Your budget: " + this.player.budget);
-            console.log("You already betted: " + previousBet);
-            console.log("Possible moves: ")
-            console.log(" - " + formattedMoves.join("\n - "))
+            puts("Your cards: " + decisionInput.cardsInHand);
+            puts("Cards on table: " + decisionInput.cardsInTable);
+            puts("Your budget: " + this.player.budget);
+            puts("You already betted: " + decisionInput.myPreviousBet);
+            puts("Possible moves: ")
+            puts(" - " + formattedMoves.join("\n - "))
 
             while (true) {
-                let input = await askQuestion("What do you want to do? (required minimum bet =" + minimumBet + "): ");
+                let input = await askQuestion("What do you want to do? (required minimum bet =" + decisionInput.minBet + "): ");
                 try {
                     return PlayerInterface.decodeDecision(input.split(" ")[0], () => parseInt(input.split(" ")[1]));
                 } catch (e) {
@@ -875,13 +916,13 @@ define((require) => {
         }
 
         async execute() {
-            console.log();
-            console.log();
-            console.log("#################################################################");
-            console.log("ROUND " + this.round.roundID);
-            console.log("Money on plate: " + this.round.plate)
-            console.log("Cards on table: " + this.round.table)
-            console.log("Players:\n" + this.round.stringifyHoles());
+            puts();
+            puts();
+            puts("#################################################################");
+            puts("ROUND " + this.round.roundID);
+            puts("Money on plate: " + this.round.plate)
+            puts("Cards on table: " + this.round.table)
+            puts("Players:\n" + this.round.stringifyHoles());
         }
     }
 
@@ -896,7 +937,7 @@ define((require) => {
                 await this.game.broadCastEvent(
                     new events.PhaseStarted("Blind placements", this.round.plate, this.round.table)
                 );
-                console.log("PLACING BLINDS")
+                puts("PLACING BLINDS")
                 let blinderPlayer = this.game.blinderPlayer;
                 let smallBlinderPlayer = this.game.smallBlinderPlayer;
                 if (blinderPlayer.player.budget < this.game.rules.blind) {
@@ -931,7 +972,7 @@ define((require) => {
         async execute() {
             await super.execute();
             await this.game.broadCastEvent(new events.PhaseStarted("Dealing cards", this.round.plate, this.round.table));
-            console.log("DEALING CARDS");
+            puts("DEALING CARDS");
 
             for (let pl of this.game.playerInterfaces) {
                 let cards = this.deck.draw(2);
@@ -1028,7 +1069,7 @@ define((require) => {
                 let neededBets = this.maxBet - previousPlayerBet;
                 if (pl.player.budget < neededBets) {
                     //insufficient funds
-                    console.log("" + pl + " has unsufficient funds and can only fold or leave.")
+                    puts("" + pl + " has unsufficient funds and can only fold or leave.")
                     await pl.notifyEvent(new events.InsufficientFundsToBet(pl.player.budget, neededBets))
                     possibleMoves = ["fold", "leave"];
                 } else if (pl.player.budget === neededBets) {
@@ -1044,34 +1085,42 @@ define((require) => {
                     possibleMoves = ["fold", "bet", "call", "check", "leave"];
                 }
 
-
-                let decision = await pl.decide(new DecisionProcessInput(
-                    this.round.getHoleForPlayer(pl),
-                    this.round.table,
-                    possibleMoves,
-                    ),
-                    this.maxBet,
-                    previousPlayerBet,
-                    this._collectedBets
+                let tmpBets = [];
+                for (let e of this._collectedBets.entries()){
+                    tmpBets.push(e);
+                }
+                let decision = await pl.decide(
+                    new DecisionProcessInput(
+                        this.round.getHoleForPlayer(pl),
+                        this.round.table,
+                        possibleMoves,
+                        this.maxBet,
+                        previousPlayerBet,
+                        tmpBets.map((e) => ({
+                            player: e[0].player.name,
+                            budget: e[0].player.budget,
+                            bet: e[1]
+                        }))
+                    )
                 )
 
-                console.log("(" + pl + ") decided to " + decision);
+                puts("(" + pl + ") decided to " + decision);
 
                 switch (true) {
                     case decision instanceof FoldDecision: {
                         this.round.setPlayerAsFolded(pl);
                         this.putBet(pl, -1);
-                        console.log("Folded players: " + this.round.foldedPlayersSize);
+                        puts("Folded players: " + this.round.foldedPlayersSize);
                         this.setPlayerSpeakFlag(pl);
                         if (decision instanceof LeaveDecision) {
                             this.game.deregisterPlayer(pl);
                             this.unconsiderPlayer(pl);
                             await this.game.broadCastEvent(
-                                new events.PlayerLeft(pl)
+                                new events.PlayerLeft(pl.player.name)
                             );
                         } else {
                             await this.game.broadCastEvent(
-                                new events.FoldDone(pl)
+                                new events.FoldDone(pl.player.name)
                             );
                         }
                         //TODO check: if there is only one player that did not fold that one wins the round!
@@ -1086,10 +1135,10 @@ define((require) => {
                         }
                         this.putBet(pl, decision.howMuch);
                         this.round.putOnPlate(pl.removeMoney(toAdded));
-                        console.log("    --> " + pl + "");
-                        console.log("New max bet: " + decision.howMuch + "; Plate: " + this.round.plate);
-                        console.log("bets: " + prettyStringMap(this.collectedBets));
-                        await this.game.broadCastEvent(new events.BetDone(pl, decision.howMuch));
+                        puts("    --> " + pl + "");
+                        puts("New max bet: " + decision.howMuch + "; Plate: " + this.round.plate);
+                        puts("bets: " + prettyStringMap(this.collectedBets));
+                        await this.game.broadCastEvent(new events.BetDone(pl.player.name, decision.howMuch));
                         aPlayerDidBetOrCall = true;
                         this.setPlayerSpeakFlag(pl);
                     }
@@ -1101,10 +1150,10 @@ define((require) => {
                         this.putBet(pl, this.maxBet);
 
                         this.round.putOnPlate(pl.removeMoney(toBeAdded));
-                        console.log("    --> " + pl + "");
-                        console.log("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
-                        console.log("bets: " + prettyStringMap(this.collectedBets));
-                        await this.game.broadCastEvent(new events.CallDone(pl, this.maxBet));
+                        puts("    --> " + pl + "");
+                        puts("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
+                        puts("bets: " + prettyStringMap(this.collectedBets));
+                        await this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet));
                         aPlayerDidBetOrCall = true;
                         this.setPlayerSpeakFlag(pl);
                     }
@@ -1112,12 +1161,12 @@ define((require) => {
 
                     default:
                     case decision instanceof CheckDecision: {
-                        await this.game.broadCastEvent(new events.CheckDone(pl));
+                        await this.game.broadCastEvent(new events.CheckDone(pl.player.name));
                         //do nothing
                     }
                         break;
                 }
-                console.log();
+                puts();
                 playerTurnCounter++;
             }
             this.round.requiredBetForCall = this.maxBet;
@@ -1136,7 +1185,7 @@ define((require) => {
 
         async execute() {
             await super.execute();
-            console.log("PRE-FLOP BETTING");
+            puts("PRE-FLOP BETTING");
             await this.game.broadCastEvent(new events.PhaseStarted("Pre flop betting", this.round.plate, this.round.table));
             // const possibleMoves = ["fold", "check", "bet", "call"];
 
@@ -1152,7 +1201,7 @@ define((require) => {
         async execute() {
             this.round.putCardOnTable(this.deck.draw()[0]);
             await super.execute();
-            console.log("FLOP BETTING");
+            puts("FLOP BETTING");
             await this.game.broadCastEvent(new events.PhaseStarted("Flop betting", this.round.plate, this.round.table));
             await this.reachBetConsensus();
         }
@@ -1166,7 +1215,7 @@ define((require) => {
         async execute() {
             this.round.putCardOnTable(this.deck.draw()[0]);
             await super.execute();
-            console.log("TURN BETTING");
+            puts("TURN BETTING");
             await this.game.broadCastEvent(new events.PhaseStarted("Turn betting", this.round.plate, this.round.table));
             await this.reachBetConsensus();
         }
@@ -1194,7 +1243,7 @@ define((require) => {
 
         async execute() {
             await super.execute();
-            console.log("SHOWDOWN");
+            puts("SHOWDOWN");
             await this.game.broadCastEvent(new events.PhaseStarted("Showdown", this.round.plate, this.round.table));
             if (this.game.playerInterfaces.every(p => this.round.didPlayerFold(p))) {
                 //TODO
@@ -1215,21 +1264,21 @@ define((require) => {
             }
 
             handPatternEntries.sort((hpe1, hpe2) => hpe2[1].compare(hpe1[1])); // sorted downwards
-            console.log("Showdown ranking: ");
+            puts("Showdown ranking: ");
             let i = 1;
             let winner;
             for (let e of handPatternEntries) {
                 if (i === 1) {
                     winner = e[0];
                 }
-                console.log("Place #" + i + " for " + e[0] + " with: " + e[1]);
+                puts("Place #" + i + " for " + e[0] + " with: " + e[1]);
                 i++;
             }
 
             let howMuchWon = this.round.plate;
-            console.log("" + winner + " wins " + howMuchWon + "!!!")
+            puts("" + winner + " wins " + howMuchWon + "!!!")
             winner.awardMoney(howMuchWon);
-            await this.game.broadCastEvent(new events.PlayerWonRound(winner, howMuchWon))
+            await this.game.broadCastEvent(new events.PlayerWonRound(winner.player.name, howMuchWon))
             this.round.plate = 0;
         }
     }
@@ -1332,7 +1381,12 @@ define((require) => {
         ]
 
         async executeRound() {
-            await this.game.broadCastEvent(new events.RoundStarted(this.roundID, this.game.playerInterfaces));
+            await this.game.broadCastEvent(
+                new events.RoundStarted(
+                    this.roundID,
+                    this.game.playerInterfaces.map(pl => pl.player.name)
+                )
+            );
             let previousBets = new Map();
             for (const Phase of Round.phases) {
                 let phase;
@@ -1430,10 +1484,10 @@ define((require) => {
         registerPlayer(playerInterface) {
             if (this.gameStarted) {
                 this._enteringPlayersQueue.push(playerInterface);
-                console.log("" + playerInterface + " joined the lobby, enqueued for next round.");
+                puts("" + playerInterface + " joined the lobby, enqueued for next round.");
             } else {
                 this._playerInterfaces.push(playerInterface);
-                console.log("" + playerInterface + " joined the lobby.");
+                puts("" + playerInterface + " joined the lobby.");
             }
         }
 
@@ -1481,7 +1535,7 @@ define((require) => {
                 for (let pl of this._enteringPlayersQueue) {
                     if (!this._playerInterfaces.some(pl2 => pl2.player.id === pl.player.id)) {
                         this._playerInterfaces.push(pl);
-                        console.log("" + pl + " was in the lobby and now enters the game.");
+                        puts("" + pl + " was in the lobby and now enters the game.");
                     }
                 }
                 // empty the queue
@@ -1525,6 +1579,8 @@ define((require) => {
     }
 
     return {
+        // to allow output customization:
+        textInOutCallbacks,
         // hand patterns
         idToFaces,
         idToSuits,
