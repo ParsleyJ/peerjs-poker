@@ -990,8 +990,8 @@ define((require) => {
                 }
                 let decision = await pl.decide(
                     new DecisionProcessInput(
-                        this.round.getHoleForPlayer(pl),
                         this.round.table,
+                        this.round.getHoleForPlayer(pl),
                         possibleMoves,
                         this.maxBet,
                         previousPlayerBet,
