@@ -9,8 +9,6 @@ define((require) => {
 
         static eventFromObj(eventType, object){
             switch (eventType){
-                case "PlayerLeft":
-                    return new PlayerLeft(object._player);
                 case "PlayerDisqualified":
                     return new PlayerDisqualified(object._player, object._reason);
                 case "PlayerWonRound":
@@ -21,8 +19,12 @@ define((require) => {
                     return new RoundStarted(object._roundID, object._players);
                 case "CardsDealt":
                     return new CardsDealt(object._cards.map( c => Card.fromObj(c)));
+                case "PlayerDeciding":
+                    return new PlayerDeciding(object._player);
                 case "InsufficientFundsToBet":
                     return new InsufficientFundsToBet(object._money, object._moneyNeeded);
+                case "PlayerLeft":
+                    return new PlayerLeft(object._player);
                 case "BetDone":
                     return new BetDone(object._player, object._betAmount);
                 case "FoldDone":
@@ -90,6 +92,29 @@ define((require) => {
 
         toString() {
             return "(event: " + this.player + " is disqualified for reason: '" + this.reason + "')"
+        }
+    }
+
+    class PlayerDeciding extends PokerEvent{
+        _player;
+
+
+        constructor(player) {
+            super();
+            this._player = player;
+        }
+
+        getEventType() {
+            return "PlayerDeciding";
+        }
+
+
+        get player() {
+            return this._player;
+        }
+
+        toString(){
+            return "(event: " + this.player + " is deciding his move...)";
         }
     }
 
@@ -341,7 +366,6 @@ define((require) => {
 
 
     return {
-        PlayerLeft,
         PokerEvent,
         PlayerDisqualified,
         PlayerWonRound,
@@ -349,6 +373,8 @@ define((require) => {
         RoundStarted,
         CardsDealt,
         InsufficientFundsToBet,
+        PlayerDeciding,
+        PlayerLeft,
         BetDone,
         FoldDone,
         CallDone,

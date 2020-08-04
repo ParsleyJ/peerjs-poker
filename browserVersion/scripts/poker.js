@@ -1,5 +1,6 @@
 define((require) => {
     const events = require('./pokerEvents');
+    const {sleep} = require('./util');
     const {
         SPADES,
         CLUBS,
@@ -722,6 +723,11 @@ define((require) => {
         }
 
         async decide(decisionInput) {
+
+            //fake 'thinking' between 1 and 2 secs
+            await sleep(1000 + Math.random() * 1000);
+
+
             if (this.iAmTheBestBet(decisionInput.collectedBets)) {
                 return new CallDecision();
             }
@@ -833,7 +839,7 @@ define((require) => {
         async execute() {
             while (true) {
                 await super.execute();
-                await this.game.broadCastEvent(
+                this.game.broadCastEvent(
                     new events.PhaseStarted("Blind placements", this.round.plate, this.round.table)
                 );
                 puts("PLACING BLINDS")
@@ -841,7 +847,7 @@ define((require) => {
                 let smallBlinderPlayer = this.game.smallBlinderPlayer;
                 if (blinderPlayer.player.budget < this.game.rules.blind) {
                     // deregister player and restart phase
-                    await this.game.broadCastEvent(
+                    this.game.broadCastEvent(
                         new events.PlayerDisqualified(blinderPlayer, "missing funds for blind")
                     );
                     this.game.deregisterPlayer(blinderPlayer);
@@ -849,7 +855,7 @@ define((require) => {
                 }
                 if (smallBlinderPlayer.player.budget < this.game.rules.smallBlind) {
                     // deregister player and restart phase
-                    await this.game.broadCastEvent(
+                    this.game.broadCastEvent(
                         new events.PlayerDisqualified(smallBlinderPlayer, "missing funds for small blind")
                     );
                     this.game.deregisterPlayer(smallBlinderPlayer);
@@ -870,7 +876,7 @@ define((require) => {
 
         async execute() {
             await super.execute();
-            await this.game.broadCastEvent(new events.PhaseStarted("Dealing cards", this.round.plate, this.round.table));
+            this.game.broadCastEvent(new events.PhaseStarted("Dealing cards", this.round.plate, this.round.table));
             puts("DEALING CARDS");
 
             for (let pl of this.game.playerInterfaces) {
@@ -1017,7 +1023,11 @@ define((require) => {
                 for (let e of this._collectedBets.entries()) {
                     tmpBets.push(e);
                 }
-                // send input data for decision to the player and await the decision
+
+                this.game.broadCastEvent(new events.PlayerDeciding(pl.player.name),
+                    (pl2) => pl2.player.id !== pl.player.id); // send to every player except pl
+
+                // send input data for decision to pl and await the decision
                 let decision = await pl.decide(
                     new DecisionProcessInput(
                         this.round.table,
@@ -1050,11 +1060,11 @@ define((require) => {
                             // deletes the bet&spoke info on this about the player.
                             this.unconsiderPlayer(pl);
 
-                            await this.game.broadCastEvent(
+                            this.game.broadCastEvent(
                                 new events.PlayerLeft(pl.player.name)
                             );
                         } else {
-                            await this.game.broadCastEvent(
+                            this.game.broadCastEvent(
                                 new events.FoldDone(pl.player.name)
                             );
                         }
@@ -1069,14 +1079,14 @@ define((require) => {
                             }
                         }
                         for (let pl of this.game.playerInterfaces) {
-                            if (!this._speakFlags.has(pl) && this.collectedBets.get(pl)!==-1) {
+                            if (!this._speakFlags.has(pl) && this.collectedBets.get(pl) !== -1) {
                                 stillPlaying.add(pl);
                             }
                         }
 
                         puts("still in game players = [" + stillPlaying.size + "]");
                         if (stillPlaying.size === 1) {
-                            for(let won of stillPlaying.values()){
+                            for (let won of stillPlaying.values()) {
                                 puts("" + won + " won because everyone else folded.")
                                 this.setWinnerForEveryoneFolded(won);
                             }
@@ -1099,7 +1109,7 @@ define((require) => {
                         puts("    --> " + pl);
                         puts("New max bet: " + decision.howMuch + "; Plate: " + this.round.plate);
                         puts("bets: " + prettyStringMap(this.collectedBets));
-                        await this.game.broadCastEvent(new events.BetDone(pl.player.name, decision.howMuch));
+                        this.game.broadCastEvent(new events.BetDone(pl.player.name, decision.howMuch));
                         aPlayerDidBetOrCall = true;
                         this.setPlayerSpeakFlag(pl);
                     }
@@ -1114,7 +1124,7 @@ define((require) => {
                         puts("    --> " + pl + "");
                         puts("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
                         puts("bets: " + prettyStringMap(this.collectedBets));
-                        await this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet));
+                        this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet));
                         aPlayerDidBetOrCall = true;
                         this.setPlayerSpeakFlag(pl);
                     }
@@ -1122,7 +1132,7 @@ define((require) => {
 
                     default:
                     case decision instanceof CheckDecision: {
-                        await this.game.broadCastEvent(new events.CheckDone(pl.player.name));
+                        this.game.broadCastEvent(new events.CheckDone(pl.player.name));
                         //do nothing
                     }
                         break;
@@ -1147,7 +1157,7 @@ define((require) => {
         async execute() {
             await super.execute();
             puts("PRE-FLOP BETTING");
-            await this.game.broadCastEvent(new events.PhaseStarted("Pre flop betting", this.round.plate, this.round.table));
+            this.game.broadCastEvent(new events.PhaseStarted("Pre flop betting", this.round.plate, this.round.table));
             await this.reachBetConsensus();
         }
     }
@@ -1161,7 +1171,7 @@ define((require) => {
             this.round.putCardOnTable(this.deck.draw()[0]);
             await super.execute();
             puts("FLOP BETTING");
-            await this.game.broadCastEvent(new events.PhaseStarted("Flop betting", this.round.plate, this.round.table));
+            this.game.broadCastEvent(new events.PhaseStarted("Flop betting", this.round.plate, this.round.table));
             await this.reachBetConsensus();
         }
     }
@@ -1175,7 +1185,7 @@ define((require) => {
             this.round.putCardOnTable(this.deck.draw()[0]);
             await super.execute();
             puts("TURN BETTING");
-            await this.game.broadCastEvent(new events.PhaseStarted("Turn betting", this.round.plate, this.round.table));
+            this.game.broadCastEvent(new events.PhaseStarted("Turn betting", this.round.plate, this.round.table));
             await this.reachBetConsensus();
         }
 
@@ -1190,7 +1200,7 @@ define((require) => {
         async execute() {
             this.round.putCardOnTable(this.deck.draw()[0]);
             await super.execute();
-            await this.game.broadCastEvent(new events.PhaseStarted("River betting", this.round.plate, this.round.table));
+            this.game.broadCastEvent(new events.PhaseStarted("River betting", this.round.plate, this.round.table));
             await this.reachBetConsensus();
         }
     }
@@ -1209,7 +1219,7 @@ define((require) => {
         async execute() {
             await super.execute();
             puts("SHOWDOWN");
-            await this.game.broadCastEvent(new events.PhaseStarted("Showdown", this.round.plate, this.round.table));
+            this.game.broadCastEvent(new events.PhaseStarted("Showdown", this.round.plate, this.round.table));
 
             let winners = [];
             if (this._everyoneFoldedWinner !== null && this._everyoneFoldedWinner !== undefined) {
@@ -1239,11 +1249,11 @@ define((require) => {
                 let firstWinnerHandPattern;
                 for (let e of handPatternEntries) {
                     let placement = i;
-                    if(winners.length === 0){
+                    if (winners.length === 0) {
                         winners.push(e[0]);
                         firstWinnerHandPattern = e[1];
-                    }else{
-                        if(firstWinnerHandPattern.compare(e[1]) === 0){
+                    } else {
+                        if (firstWinnerHandPattern.compare(e[1]) === 0) {
                             winners.push(e[0])
                             placement = 1;
                         }
@@ -1253,15 +1263,15 @@ define((require) => {
                 }
             }
 
-            if(winners.length > 1){
+            if (winners.length > 1) {
                 puts("There is a tie!");
             }
 
             let howMuchWon = Math.floor(this.round.plate / winners.length);
             for (let w of winners) {
                 puts("" + w + " wins " + howMuchWon + "!!!");
-                w.awardMoney(Math.floor(howMuchWon/winners.length));
-                await this.game.broadCastEvent(new events.PlayerWonRound(w.player.name, howMuchWon))
+                w.awardMoney(Math.floor(howMuchWon / winners.length));
+                this.game.broadCastEvent(new events.PlayerWonRound(w.player.name, howMuchWon))
             }
             //TODO in case of a tie, some leftovers are left on the plate. What to do with them (now are lost)?
             this.round.plate = 0;
@@ -1366,7 +1376,7 @@ define((require) => {
         ]
 
         async executeRound() {
-            await this.game.broadCastEvent(
+            this.game.broadCastEvent(
                 new events.RoundStarted(
                     this.roundID,
                     this.game.playerInterfaces.map(pl => pl.player.name)
@@ -1460,7 +1470,7 @@ define((require) => {
         _rules = Rules.DEFAULT;
         _roundCounter = 0;
         _enteringPlayersQueue = [];
-        _keyCounter = 0; //TODO betterSystem to generate unique IDs/keys
+        _keyCounter = 0;
         _gameStarted = false;
         _endOfGameCallback;
 
@@ -1475,7 +1485,7 @@ define((require) => {
 
         registerPlayer(playerInterface) {
 
-            if (this.gameStarted || this.playerInterfaces >= this._maxPlayersInGame) {
+            if (this.gameStarted || this.playerInterfaces.length >= this._maxPlayersInGame) {
                 this._enteringPlayersQueue.push(playerInterface);
                 puts("" + playerInterface + " joined the lobby, enqueued.");
             } else {
@@ -1530,7 +1540,7 @@ define((require) => {
                 // add all the players in the queue which are not already registered
                 let addedPlayers = 0;
                 for (let pl of this._enteringPlayersQueue) {
-                    if(this.playerInterfaces.length >= this._maxPlayersInGame){
+                    if (this.playerInterfaces.length >= this._maxPlayersInGame) {
                         break;
                     }
                     if (!this._playerInterfaces.some(pl2 => pl2.player.id === pl.player.id)) {
@@ -1571,9 +1581,24 @@ define((require) => {
             this._gameStarted = false;
         }
 
-        async broadCastEvent(event) {
-            for (let pl of this.playerInterfaces) {
-                pl.notifyEvent(event).then(() => puts("notification sent to " + pl.player.name));
+        isEnqueued(player) {
+            return this._enteringPlayersQueue.some(p => p.id === player.id);
+        }
+
+        isPlaying(player) {
+            return this._playerInterfaces.some(p => p.id === player.id);
+        }
+
+        isInLobby(player) {
+            return this.isPlaying(player) || this.isEnqueued(player);
+        }
+
+        broadCastEvent(event, whiteListPredicate = () => true) {
+            for (let pl of this.playerInterfaces.concat(this._enteringPlayersQueue)) {
+                if (whiteListPredicate(pl)) {
+                    pl.notifyEvent(event)
+                        .then(() => console.log("notification sent to " + pl.player.name));
+                }
             }
         }
     }

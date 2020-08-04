@@ -40,28 +40,24 @@
 
                 let game = new poker.Game();
 
-                let newID = game.askNewID();
-                let player = new poker.Player(newID, "playerAI", 10_000);
-                game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
-
-
-                let humanID = game.askNewID();
-                let human = new poker.Player(humanID, "CiccioBenzina", 10_000);
-                game.registerPlayer(new poker.CLIPlayerInterface(human, game));
-
-
-
-                setTimeout((function () {
-                    let newID = game.askNewID();
-                    let player = new poker.Player(newID, "latePlayerAI", 10_000);
-                    game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
-                }), 1500);
-
                 let server = new remotePlay.GameRoom("room0", game);
                 server.listen();
 
+                $("#addLocalHumanButton").click(() => {
+                    let newID = game.askNewID();
+                    let player = new poker.Player(newID, "localHuman" + newID, 10_000);
+                    game.registerPlayer(new poker.CLIPlayerInterface(player, game));
+                });
+
+                $("#addAIButton").click(() => {
+                    let newID = game.askNewID();
+                    let player = new poker.Player(newID, "AIPlayer" + newID, 10_000);
+                    game.registerPlayer(new poker.RandomAIPlayerInterface(player, game));
+                });
+
                 $("#startGameButton").click(() => {
                     game.startGame();
+                    $("#startGameButton").remove();
                 });
 
 
@@ -71,6 +67,8 @@
     <title>Server</title>
 </head>
 <body style="background-color:white">
+<input type="button" id="addAIButton" title="ADD AI" value="ADD AI">
+<input type="button" id="addLocalHumanButton" title="ADD LOCAL HUMAN" value="ADD LOCAL HUMAN">
 <input type="button" id="startGameButton" title="START GAME" value="START GAME">
 <br>
 <div id="divo"></div>
