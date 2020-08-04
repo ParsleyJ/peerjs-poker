@@ -1,4 +1,4 @@
-define(require =>{
+define(require => {
     const poker = require('./poker');
     const events = require('./pokerEvents');
 
@@ -32,6 +32,7 @@ define(require =>{
         _listeners = [];
 
         enqueue(message) {
+            this.printQueues("enquque:start");
             let matched = null;
             for (let i = 0; i < this._listeners.length; i++) {
                 let e = this._listeners[i];
@@ -44,27 +45,41 @@ define(require =>{
             if (matched !== null && matched !== undefined) {
                 let callback = this._listeners[matched][1];
                 this._listeners.splice(matched, 1);
+                this.printQueues("enqueue:gaveToAwaitingListener");
                 callback(message);
+                return;
             }
-
+            this.printQueues("enqueue:enqueued")
             this._queue.push(message);
         }
 
+        printQueues(premessage){
+            console.log(premessage);
+            console.log("queueSize     :" + this._queue.length);
+            console.log(this._queue);
+            console.log("listenersSize :" + this._listeners.length);
+            console.log(this._listeners);
+        }
 
         dequeue(predicate = () => true) {
+            this.printQueues("dequeue:start");
             let foundIndex = this._queue.findIndex(predicate);
             if (foundIndex === -1) {
                 return new Promise(resolve => {
                     this._listeners.push([predicate, message => {
                         resolve(message);
+
                     }]);
+                    this.printQueues("dequeue:promisedLate");
                 });
             } else {
                 return new Promise(resolve => {
                     this._queue.splice(foundIndex, 1);
+                    this.printQueues("dequeue:returned");
                     resolve(this._queue[foundIndex]);
                 });
             }
+
         }
     }
 
@@ -107,30 +122,42 @@ define(require =>{
             this._connection = this._peer.connect(this._otherPeerID);
             this._connection.serialization = 'json';
             this._connection.on("data", data => {
-                if (data.messageType!==undefined) {
+                if (data.messageType !== undefined) {
+                    console.log("received data from " + this._otherPeerID + ":");
+                    console.log(data);
+                    console.log("enqueing...");
                     this._messageQueue.enqueue(data);
                 }
             });
             this._connection.on("open", async () => {
                 for await (const request of this.extractRequests()) {
-                    this.handleRequest(request);
+                    if (request !== undefined) {
+                        this.handleRequest(request);
+                    }
                 }
             });
         }
 
 
         sendData(data) {
-            console.log("Sending data to "+this.peerID+": ")
+            console.log("Sending data to " + this.peerID + ": ")
             console.log(data);
             this._connection.send(data);
         }
 
 
         async decide(decisionInput) {
-            this.sendData({messageType:"decisionRequest", input:decisionInput});
-            let decisionMessage = (await this._messageQueue.dequeue(decisionFilter)).decision;
+            this.sendData({messageType: "decisionRequest", input: decisionInput});
+            let decisionMessage;
+            let decisionText;
+            while (decisionText === undefined) {
+                while (decisionMessage === undefined) {
+                    decisionMessage = await this._messageQueue.dequeue(decisionFilter);
+                }
+                decisionText = decisionMessage.decision;
+            }
             try {
-                return poker.PlayerInterface.decodeDecision(decisionMessage.split(" ")[0], () => parseInt(decisionMessage.split(" ")[1]));
+                return poker.PlayerInterface.decodeDecision(decisionText.split(" ")[0], () => parseInt(decisionText.split(" ")[1]));
             } catch (e) {
                 console.error(e);
             }
@@ -139,13 +166,13 @@ define(require =>{
 
         awardMoney(howMuch) {
             super.awardMoney(howMuch);
-            this.sendData({messageType:"moneyAwarded", howMuch})
+            this.sendData({messageType: "moneyAwarded", howMuch})
         }
 
 
         removeMoney(howMuch) {
             let removed = super.removeMoney(howMuch);
-            this.sendData({messageType:"moneyRemoved", howMuch});
+            this.sendData({messageType: "moneyRemoved", howMuch});
             return removed;
         }
 
@@ -156,13 +183,16 @@ define(require =>{
 
 
         async notifyEvent(event) {
-            this.sendData({messageType:"event", eventType:event.getEventType(), event});
+            this.sendData({messageType: "event", eventType: event.getEventType(), event});
         }
 
 
         async* extractRequests() {
             while (true) {
-                yield await this._messageQueue.dequeue(clientRequestFilter);
+                let request = await this._messageQueue.dequeue(clientRequestFilter);
+                if (request !== undefined) {
+                    yield request;
+                }
             }
         }
 
@@ -177,7 +207,7 @@ define(require =>{
             }
         }
 
-        respond(request, responseData){
+        respond(request, responseData) {
             responseData.messageType = "response";
             responseData.requestName = request.requestName;
             this.sendData(responseData);

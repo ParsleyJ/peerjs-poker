@@ -10,7 +10,7 @@
             require(["./scripts/remotePlayer", "./scripts/pokerEvents", "./scripts/poker"],
                 (remotePlayer, events, poker) => {
 
-                    textInOutCallbacks = {}
+                    let textInOutCallbacks = {};
 
                     textInOutCallbacks.outCallback = (message) => {
                         $("#divo")
@@ -103,7 +103,8 @@
                                 this._connection.on("open", async () => {
                                     for await (const message of this.extractMessages(
                                         m => m === undefined || m.messageType !== "response"
-                                    )) {
+                                    )) { // if the message is not a response to a request:
+                                        // handle it with the common handler
                                         await this.handleMessage(message);
                                     }
                                 })
@@ -112,11 +113,16 @@
 
                         async* extractMessages() {
                             while (true) {
-                                yield await this._messageQueue.dequeue();
+                                let message = await this._messageQueue.dequeue();
+                                if(message!==undefined){
+                                    yield message;
+                                }
                             }
                         }
 
                         sendData(message) {
+                            console.log("Sending message:");
+                            console.log(message);
                             this._connection.send(message);
                         }
 
@@ -139,8 +145,7 @@
                                         break;
 
                                     case "decisionRequest": {
-                                        let decision = await this.handleDecisionRequest(message.input);
-                                        this.sendData({messageType: "decision", decision});
+                                        await this.handleDecisionRequest(message.input);
                                     }
                                         break;
                                 }
@@ -179,12 +184,16 @@
                         }
                     }
 
+                    async function startClient(){
+                        let name = await textInOutCallbacks.promptCallback("What is your name?");
+                        let budgetStr = await textInOutCallbacks.promptCallback("What is your initial budget?");
+                        let pl = new PlayerClient(name + "clientPeer", name, parseInt(budgetStr));
+                        puts("registering ...");
+                        setTimeout((() => pl.register("room0")), 500);
 
-                    let pl = new PlayerClient("ciccio", "ciccioRemoto", 30_000);
-                    puts("registering ...");
-                    setTimeout((() => pl.register("room0")), 1500);
+                    }
 
-
+                    startClient();
                 });
         });
     </script>

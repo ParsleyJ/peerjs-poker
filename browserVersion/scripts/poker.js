@@ -713,7 +713,7 @@ define((require) => {
             if (myBet === null || myBet === undefined || myBet === -1) {
                 return false;
             }
-            for (let pl in bets) {
+            for (let pl of bets) {
                 if (bets[pl].player !== this.player.name && bets[pl].bet > myBet) {
                     return false;
                 }
@@ -767,8 +767,8 @@ define((require) => {
             puts("Cards on table: " + decisionInput.cardsInTable);
             puts("Your budget: " + this.player.budget);
             puts("You already betted: " + decisionInput.myPreviousBet);
-            puts("Possible moves: ")
-            puts(" - " + formattedMoves.join("\n - "))
+            puts("Possible moves: ");
+            puts(" - " + formattedMoves.join("\n - "));
 
             while (true) {
                 let input = await askQuestion("What do you want to do? (required minimum bet =" + decisionInput.minBet + "): ");
@@ -781,7 +781,7 @@ define((require) => {
         }
 
         async notifyEvent(event) {
-            await askQuestion("Notification: " + event + " (press enter to continue)");
+            puts("Notification: " + event);
         }
     }
 
@@ -972,6 +972,7 @@ define((require) => {
                 // get the next player that has to speak
                 let pl = (this.game.playerInterfaces)[playerTurnCounter % this.game.playerInterfaces.length]
                 // did the player fold before in this round?
+                puts("Turn to decide of " + pl);
                 if (this.round.didPlayerFold(pl)) {
                     // did everyone fold? (dammit)
                     if (this.game.playerInterfaces.every(p => this.round.didPlayerFold(p))) {
@@ -1095,7 +1096,7 @@ define((require) => {
 
                         this.putBet(pl, decision.howMuch);
                         this.round.putOnPlate(pl.removeMoney(toAdded));
-                        puts("    --> " + pl + "");
+                        puts("    --> " + pl);
                         puts("New max bet: " + decision.howMuch + "; Plate: " + this.round.plate);
                         puts("bets: " + prettyStringMap(this.collectedBets));
                         await this.game.broadCastEvent(new events.BetDone(pl.player.name, decision.howMuch));
@@ -1455,6 +1456,7 @@ define((require) => {
 
     class Game {
         _playerInterfaces = [];
+        _maxPlayersInGame = 4;
         _rules = Rules.DEFAULT;
         _roundCounter = 0;
         _enteringPlayersQueue = [];
@@ -1472,17 +1474,21 @@ define((require) => {
         }
 
         registerPlayer(playerInterface) {
-            if (this.gameStarted) {
+
+            if (this.gameStarted || this.playerInterfaces >= this._maxPlayersInGame) {
                 this._enteringPlayersQueue.push(playerInterface);
-                puts("" + playerInterface + " joined the lobby, enqueued for next round.");
+                puts("" + playerInterface + " joined the lobby, enqueued.");
             } else {
                 this._playerInterfaces.push(playerInterface);
-                puts("" + playerInterface + " joined the lobby.");
+                puts("" + playerInterface + " joined the lobby, ready to start.");
             }
         }
 
         deregisterPlayer(playerInterface) {
             this._playerInterfaces = this._playerInterfaces.filter(
+                p => p.player.id !== playerInterface.player.id
+            );
+            this._enteringPlayersQueue = this._enteringPlayersQueue.filter(
                 p => p.player.id !== playerInterface.player.id
             );
         }
@@ -1522,15 +1528,19 @@ define((require) => {
             this._gameStarted = true;
             for (let r of this.generateRounds()) {
                 // add all the players in the queue which are not already registered
+                let addedPlayers = 0;
                 for (let pl of this._enteringPlayersQueue) {
+                    if(this.playerInterfaces.length >= this._maxPlayersInGame){
+                        break;
+                    }
                     if (!this._playerInterfaces.some(pl2 => pl2.player.id === pl.player.id)) {
                         this._playerInterfaces.push(pl);
+                        addedPlayers++;
                         puts("" + pl + " was in the lobby and now enters the game.");
                     }
                 }
-                // empty the queue
-                this._enteringPlayersQueue = this._enteringPlayersQueue.filter(() => false);
-
+                // remove the added players from the queue
+                this._enteringPlayersQueue.splice(0, addedPlayers);
 
                 if (this.playerInterfaces.length < 2) {
                     //TODO await for someone to register?
@@ -1563,7 +1573,7 @@ define((require) => {
 
         async broadCastEvent(event) {
             for (let pl of this.playerInterfaces) {
-                await pl.notifyEvent(event);
+                pl.notifyEvent(event).then(() => puts("notification sent to " + pl.player.name));
             }
         }
     }
