@@ -884,6 +884,7 @@ define((require) => {
     class BettingPhase extends RoundPhase {
         _collectedBets = new Map();
         _speakFlags = new Set();
+        _allFoldedWinner = null;
 
         constructor(round, collectedBets) {
             super(round);
@@ -937,6 +938,19 @@ define((require) => {
             return maxBetter;
         }
 
+        setWinnerForEveryoneFolded(player) {
+            this._allFoldedWinner = player;
+        }
+
+        get someoneWonForEveryoneFolded() {
+            return this._allFoldedWinner !== undefined &&
+                this._allFoldedWinner !== null;
+        }
+
+        get everyoneFoldedWinner() {
+            return this._allFoldedWinner;
+        }
+
         putBet(byPlayer, howMuch) {
             this._collectedBets.set(byPlayer, howMuch);
         }
@@ -948,46 +962,61 @@ define((require) => {
         async reachBetConsensus() {
             let playerTurnCounter = 1;
             let aPlayerDidBetOrCall = false;
-            while (!(this.everyoneSpokeAtLeastOneTime() && this.reachedBetConsensus())) {
+            // how to read this condition: exit when EITHER (everyone spoke AND we reached bet consensus)
+            //                                           OR someone won because everyone folded
+            while (!(
+                this.everyoneSpokeAtLeastOneTime()
+                && this.reachedBetConsensus()
+                || this.someoneWonForEveryoneFolded
+            )) {
+                // get the next player that has to speak
                 let pl = (this.game.playerInterfaces)[playerTurnCounter % this.game.playerInterfaces.length]
+                // did the player fold before in this round?
                 if (this.round.didPlayerFold(pl)) {
-                    // did everyone fold?
+                    // did everyone fold? (dammit)
                     if (this.game.playerInterfaces.every(p => this.round.didPlayerFold(p))) {
+                        // everyone folded. Go on to next phase
                         break;
                     }
+                    // this player folded; next player's turn!
                     playerTurnCounter++;
                     continue;
                 }
 
+                // get the amount of money already betted by this player
                 let previousPlayerBet = this.getBet(pl);
                 if (previousPlayerBet === undefined || previousPlayerBet === null || previousPlayerBet === -1) {
                     previousPlayerBet = 0;
                 }
 
-                let possibleMoves;
-                let neededBets = this.maxBet - previousPlayerBet;
-                if (pl.player.budget < neededBets) {
-                    //insufficient funds
-                    puts("" + pl + " has unsufficient funds and can only fold or leave.")
-                    await pl.notifyEvent(new events.InsufficientFundsToBet(pl.player.budget, neededBets))
+                let possibleMoves; // list of possible moves, to be populate depending on the state of the game
+                let neededBet = this.maxBet - previousPlayerBet; // amount of money needed to reach the maximum bet
+                if (pl.player.budget < neededBet) {
+                    //insufficient funds to call or bet
+                    puts("" + pl + " has unsufficient funds and can only fold or leave.");
+                    await pl.notifyEvent(new events.InsufficientFundsToBet(pl.player.budget, neededBet));
                     possibleMoves = ["fold", "leave"];
-                } else if (pl.player.budget === neededBets) {
+                } else if (pl.player.budget === neededBet) {
                     // the player has just enough money to call
-                    if (aPlayerDidBetOrCall) {
+                    if (aPlayerDidBetOrCall) {// Saul - ehe
+                        // cannot check if someone in this phase already betted
                         possibleMoves = ["fold", "call", "leave"];
                     } else {
                         possibleMoves = ["fold", "call", "check", "leave"];
                     }
                 } else if (aPlayerDidBetOrCall) {// Saul - ehe
+                    // cannot check if someone in this phase already betted
                     possibleMoves = ["fold", "raise", "call", "leave"];
                 } else {
                     possibleMoves = ["fold", "bet", "call", "check", "leave"];
                 }
 
+                // array of simple object regarding the current betting state, to be sent to the player for decision
                 let tmpBets = [];
-                for (let e of this._collectedBets.entries()){
+                for (let e of this._collectedBets.entries()) {
                     tmpBets.push(e);
                 }
+                // send input data for decision to the player and await the decision
                 let decision = await pl.decide(
                     new DecisionProcessInput(
                         this.round.table,
@@ -1005,15 +1034,21 @@ define((require) => {
 
                 puts("(" + pl + ") decided to " + decision);
 
+                // what to do depending on the type of the decision:
                 switch (true) {
                     case decision instanceof FoldDecision: {
                         this.round.setPlayerAsFolded(pl);
                         this.putBet(pl, -1);
                         puts("Folded players: " + this.round.foldedPlayersSize);
                         this.setPlayerSpeakFlag(pl);
+                        // LeaveDecision extends FoldDecision:
+                        // a player that leaves the game implicitly folds.
                         if (decision instanceof LeaveDecision) {
                             this.game.deregisterPlayer(pl);
+
+                            // deletes the bet&spoke info on this about the player.
                             this.unconsiderPlayer(pl);
+
                             await this.game.broadCastEvent(
                                 new events.PlayerLeft(pl.player.name)
                             );
@@ -1022,16 +1057,42 @@ define((require) => {
                                 new events.FoldDone(pl.player.name)
                             );
                         }
-                        //TODO check: if there is only one player that did not fold that one wins the round!
+
+                        //check: if there is only one player that did not fold, that one player wins the round!
+                        puts("someone folded. checking if there is a winner for everyone folded... ");
+
+                        let stillPlaying = new Set();
+                        for (let e of this._collectedBets.entries()) {
+                            if (e[1] !== -1) {
+                                stillPlaying.add(e[0]);
+                            }
+                        }
+                        for (let pl of this.game.playerInterfaces) {
+                            if (!this._speakFlags.has(pl)) {
+                                stillPlaying.add(pl);
+                            }
+                        }
+
+                        puts("still in game players = [" + stillPlaying.size + "]");
+                        if (stillPlaying.size === 1) {
+                            for(let won of stillPlaying.values()){
+                                puts("" + won + " won because everyone else folded.")
+                                this.setWinnerForEveryoneFolded(won);
+                            }
+                        }
+
                     }
                         break;
 
                     case decision instanceof BetDecision: {// handles raise too
                         let toAdded = decision.howMuch - previousPlayerBet;
                         if (decision.howMuch < this.maxBet) {
+                            //TODO: instead of throwing, re-ask to player to decide (maybe restarting from while
+                            //      without increasing the playerTurnCounter is sufficient, but not sure):
                             throw "Invalid bet! The player attempted to bet " + decision.howMuch +
                             " but it had to bet at least " + this.maxBet;
                         }
+
                         this.putBet(pl, decision.howMuch);
                         this.round.putOnPlate(pl.removeMoney(toAdded));
                         puts("    --> " + pl + "");
@@ -1086,8 +1147,6 @@ define((require) => {
             await super.execute();
             puts("PRE-FLOP BETTING");
             await this.game.broadCastEvent(new events.PhaseStarted("Pre flop betting", this.round.plate, this.round.table));
-            // const possibleMoves = ["fold", "check", "bet", "call"];
-
             await this.reachBetConsensus();
         }
     }
@@ -1136,42 +1195,53 @@ define((require) => {
     }
 
     class ShowDown extends BettingPhase {
+        _everyoneFoldedWinner = null;
+
         constructor(round) {
             super(round);
+        }
+
+        set everyoneFoldedWinner(value) {
+            this._everyoneFoldedWinner = value;
         }
 
         async execute() {
             await super.execute();
             puts("SHOWDOWN");
             await this.game.broadCastEvent(new events.PhaseStarted("Showdown", this.round.plate, this.round.table));
-            if (this.game.playerInterfaces.every(p => this.round.didPlayerFold(p))) {
-                //TODO
 
-                throw "Everyone folded!";
-            }
-
-            let hands = new Map();
-            for (let pl of this.game.playerInterfaces.filter(p => !this.round.didPlayerFold(p))) {
-                let hole = this.round.getHoleForPlayer(pl);
-                let hand = hole.concat(this.round.table);
-                hands.set(pl, hand)
-            }
-
-            let handPatternEntries = []
-            for (let e of hands.entries()) {
-                handPatternEntries.push([e[0], HandPattern.detect(e[1])]);
-            }
-
-            handPatternEntries.sort((hpe1, hpe2) => hpe2[1].compare(hpe1[1])); // sorted downwards
-            puts("Showdown ranking: ");
-            let i = 1;
             let winner;
-            for (let e of handPatternEntries) {
-                if (i === 1) {
-                    winner = e[0];
+            if (this._everyoneFoldedWinner !== null && this._everyoneFoldedWinner !== undefined) {
+                winner = this._everyoneFoldedWinner;
+                puts("Everyone folded except for (" + winner + "), which wins the round.");
+                // and skip the showdown
+            } else {
+                if (this.game.playerInterfaces.every(p => this.round.didPlayerFold(p))) {
+                    throw "Everyone folded!";
                 }
-                puts("Place #" + i + " for " + e[0] + " with: " + e[1]);
-                i++;
+
+                let hands = new Map();
+                for (let pl of this.game.playerInterfaces.filter(p => !this.round.didPlayerFold(p))) {
+                    let hole = this.round.getHoleForPlayer(pl);
+                    let hand = hole.concat(this.round.table);
+                    hands.set(pl, hand)
+                }
+
+                let handPatternEntries = []
+                for (let e of hands.entries()) {
+                    handPatternEntries.push([e[0], HandPattern.detect(e[1])]);
+                }
+
+                handPatternEntries.sort((hpe1, hpe2) => hpe2[1].compare(hpe1[1])); // sorted downwards
+                puts("Showdown ranking: ");
+                let i = 1;
+                for (let e of handPatternEntries) {
+                    if (i === 1) {
+                        winner = e[0];
+                    }
+                    puts("Place #" + i + " for " + e[0] + " with: " + e[1]);
+                    i++;
+                }
             }
 
             let howMuchWon = this.round.plate;
@@ -1287,6 +1357,7 @@ define((require) => {
                 )
             );
             let previousBets = new Map();
+            let winnerAsEveryoneFolded = null;
             for (const Phase of Round.phases) {
                 let phase;
                 if (Phase === Deal) {
@@ -1297,11 +1368,16 @@ define((require) => {
                 }
                 if (Phase === PreFlop || Phase === TheFlop || Phase === TheTurn || Phase === TheRiver) {
                     phase = new Phase(this, previousBets);
-                    await phase.execute()
+                    phase.setWinnerForEveryoneFolded(winnerAsEveryoneFolded);
+                    await phase.execute();
                     previousBets = phase.collectedBets;
+                    winnerAsEveryoneFolded = phase.everyoneFoldedWinner;
                 } else {
                     phase = new Phase(this);
-                    await phase.execute()
+                    if (phase instanceof ShowDown) {
+                        phase.everyoneFoldedWinner = winnerAsEveryoneFolded;
+                    }
+                    await phase.execute();
                 }
             }
         }
