@@ -1059,7 +1059,7 @@ define((require) => {
                         }
 
                         //check: if there is only one player that did not fold, that one player wins the round!
-                        puts("someone folded. checking if there is a winner for everyone folded... ");
+                        puts("someone folded. checking if there is a winner because everyone folded... ");
 
                         let stillPlaying = new Set();
                         for (let e of this._collectedBets.entries()) {
@@ -1068,7 +1068,7 @@ define((require) => {
                             }
                         }
                         for (let pl of this.game.playerInterfaces) {
-                            if (!this._speakFlags.has(pl)) {
+                            if (!this._speakFlags.has(pl) && this.collectedBets.get(pl)!==-1) {
                                 stillPlaying.add(pl);
                             }
                         }
@@ -1210,10 +1210,10 @@ define((require) => {
             puts("SHOWDOWN");
             await this.game.broadCastEvent(new events.PhaseStarted("Showdown", this.round.plate, this.round.table));
 
-            let winner;
+            let winners = [];
             if (this._everyoneFoldedWinner !== null && this._everyoneFoldedWinner !== undefined) {
-                winner = this._everyoneFoldedWinner;
-                puts("Everyone folded except for (" + winner + "), which wins the round.");
+                winners.push(this._everyoneFoldedWinner);
+                puts("Everyone folded except for (" + winners[0] + "), which wins the round.");
                 // and skip the showdown
             } else {
                 if (this.game.playerInterfaces.every(p => this.round.didPlayerFold(p))) {
@@ -1235,19 +1235,34 @@ define((require) => {
                 handPatternEntries.sort((hpe1, hpe2) => hpe2[1].compare(hpe1[1])); // sorted downwards
                 puts("Showdown ranking: ");
                 let i = 1;
+                let firstWinnerHandPattern;
                 for (let e of handPatternEntries) {
-                    if (i === 1) {
-                        winner = e[0];
+                    let placement = i;
+                    if(winners.length === 0){
+                        winners.push(e[0]);
+                        firstWinnerHandPattern = e[1];
+                    }else{
+                        if(firstWinnerHandPattern.compare(e[1]) === 0){
+                            winners.push(e[0])
+                            placement = 1;
+                        }
                     }
-                    puts("Place #" + i + " for " + e[0] + " with: " + e[1]);
+                    puts("Place #" + placement + " for " + e[0] + " with: " + e[1]);
                     i++;
                 }
             }
 
-            let howMuchWon = this.round.plate;
-            puts("" + winner + " wins " + howMuchWon + "!!!")
-            winner.awardMoney(howMuchWon);
-            await this.game.broadCastEvent(new events.PlayerWonRound(winner.player.name, howMuchWon))
+            if(winners.length > 1){
+                puts("There is a tie!");
+            }
+
+            let howMuchWon = Math.floor(this.round.plate / winners.length);
+            for (let w of winners) {
+                puts("" + w + " wins " + howMuchWon + "!!!");
+                w.awardMoney(Math.floor(howMuchWon/winners.length));
+                await this.game.broadCastEvent(new events.PlayerWonRound(w.player.name, howMuchWon))
+            }
+            //TODO in case of a tie, some leftovers are left on the plate. What to do with them (now are lost)?
             this.round.plate = 0;
         }
     }

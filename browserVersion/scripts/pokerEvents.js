@@ -283,7 +283,7 @@ define((require) => {
         }
 
         toString() {
-            return "(event: " + this.player + " choose to bet (or to increase its previous bet to) " + this.betAmount + ")";
+            return "(event: " + this.player + " chose to bet (or to increase its previous bet to) " + this.betAmount + ")";
         }
     }
 
@@ -312,7 +312,7 @@ define((require) => {
         }
 
         toString() {
-            return "(event: " + this.player + " choose to call {bet amount =" + this.betAmount + "})";
+            return "(event: " + this.player + " chose to call {bet amount =" + this.betAmount + "})";
         }
     }
 
@@ -335,7 +335,7 @@ define((require) => {
         }
 
         toString() {
-            return "(event: " + this.player + " choose to check)";
+            return "(event: " + this.player + " chose to check)";
         }
     }
 
