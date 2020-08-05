@@ -1,6 +1,7 @@
 define(require => {
     const poker = require('./poker');
     const events = require('./pokerEvents');
+    const {timeoutPromise} = require('./util.js');
 
 
     /**
@@ -53,7 +54,7 @@ define(require => {
             this._queue.push(message);
         }
 
-        printQueues(premessage){
+        printQueues(premessage) {
             console.log(premessage);
             console.log("queueSize     :" + this._queue.length);
             console.log(this._queue);
@@ -139,62 +140,126 @@ define(require => {
                         }
                     }
                 });
-                //TODO handle connection close & error
+                this._connection.on("close", ()=>this.peerDisconnected());
+                this._connection.on("error", ()=>this.peerDisconnected());
             })
 
         }
 
+        peerDisconnected() {
+            this._connection = null;
+            // send to all other player interfaces that the peer connected to this interface
+            // disconnected.
+            this.game.broadCastEvent(new events.PeerDisconnected(this.player.name),
+                pl => this.player.id !== pl.player.id);
+            if (!this.game._gameStarted) {
+                this.game.deregisterPlayer(this);
+            }
+        }
+
+        isConnectionAlive() {
+            if(this._connection === null || this._connection === undefined){
+                return false;
+            }
+            if(!this._connection.open){
+                this.peerDisconnected();
+                return false;
+            }
+            return true;
+        }
 
         sendData(data) {
-            console.log("Sending data to " + this.peerID + ": ")
-            console.log(data);
-            this._connection.send(data);
+            if (this.isConnectionAlive()) {
+                console.log("Sending data to " + this.peerID + ": ")
+                console.log(data);
+                this._connection.send(data);
+            }
         }
 
 
         async decide(decisionInput) {
-            this.sendData({messageType: "decisionRequest", input: decisionInput});
-            let decisionMessage;
-            let decisionText;
-            while (decisionText === undefined) {
-                while (decisionMessage === undefined) {
-                    decisionMessage = await this._messageQueue.dequeue(decisionFilter);
+            if (this.isConnectionAlive()) {
+                this.sendData({messageType: "decisionRequest", input: decisionInput});
+                let decisionMessage;
+                let decisionText;
+                // we need a decision text
+                while (decisionText === undefined) {
+                    // we need a decision message
+                    while (decisionMessage === undefined) {
+                        // we recheck at every loop if the connection is still alive.
+                        if(this.isConnectionAlive()){
+                            //if the connection is still alive, we await for a decision
+                            // message on queue, with a timeout.
+                            try{
+                                decisionMessage = await timeoutPromise(
+                                    15_000,
+                                    this._messageQueue.dequeue(decisionFilter),
+                                );
+                                console.log(decisionMessage);
+                            }catch(e){
+                                //something went wrong (probably timeout): we log the error,
+                                // and decisionMessage is left undefined (so we reloop on while).
+                                console.log(e);
+                                // we also remove the listener for the decision, since the dequeue failed.
+                                let foundIndex = this._messageQueue._listeners.find(e => e[0] === decisionFilter);
+                                if (foundIndex !== -1) {
+                                    this._messageQueue._listeners.splice(foundIndex, 1);
+                                }
+                            }
+
+                        }else{
+                            // connection is not alive: we inform the game engine that the player decided to leave
+                            return poker.PlayerInterface.decodeDecision("leave", () => 0);
+                        }
+                    }
+                    decisionText = decisionMessage.decision;
                 }
-                decisionText = decisionMessage.decision;
-            }
-            try {
-                return poker.PlayerInterface.decodeDecision(decisionText.split(" ")[0], () => parseInt(decisionText.split(" ")[1]));
-            } catch (e) {
-                console.error(e);
+                try {
+                    return poker.PlayerInterface.decodeDecision(decisionText.split(" ")[0], () => parseInt(decisionText.split(" ")[1]));
+                } catch (e) {
+                    console.error(e);
+                }
+            } else {
+                return poker.PlayerInterface.decodeDecision("leave", () => 0);
             }
         }
 
 
         awardMoney(howMuch) {
-            super.awardMoney(howMuch);
-            this.sendData({messageType: "moneyAwarded", howMuch})
+            if (this.isConnectionAlive()) {
+                super.awardMoney(howMuch);
+                this.sendData({messageType: "moneyAwarded", howMuch});
+            }
         }
 
 
         removeMoney(howMuch) {
             let removed = super.removeMoney(howMuch);
-            this.sendData({messageType: "moneyRemoved", howMuch});
+            if (this.isConnectionAlive()) {
+                this.sendData({messageType: "moneyRemoved", howMuch});
+            }
             return removed;
         }
 
 
         toString() {
-            return "(remote) " + super.toString();
+            return "(remote) " + super.toString() + (this.isConnectionAlive() ?
+                    ""
+                    :
+                    "{DISCONNECTED}"
+            );
         }
 
 
         async notifyEvent(event) {
-            this.sendData({messageType: "event", eventType: event.getEventType(), event});
+            if (this.isConnectionAlive()) {
+                this.sendData({messageType: "event", eventType: event.getEventType(), event});
+            }
         }
 
 
         async* extractRequests() {
-            while (true) {
+            while (this.isConnectionAlive()) {
                 let request = await this._messageQueue.dequeue(clientRequestFilter);
                 if (request !== undefined) {
                     yield request;
@@ -205,18 +270,24 @@ define(require => {
 
         handleRequest(request) {
             console.log("received request from client: " + request);
-            switch (request.requestName) {
-                case "budget": {
-                    this.respond(request, {budget: this.player.budget})
+            if (this.isConnectionAlive()) {
+                switch (request.requestName) {
+                    case "budget": {
+                        this.respond(request, {budget: this.player.budget})
+                    }
+                        break;
                 }
-                    break;
+            } else {
+                console.log("However, at the time of handling the request, the peer appears to be disconnected");
             }
         }
 
         respond(request, responseData) {
-            responseData.messageType = "response";
-            responseData.requestName = request.requestName;
-            this.sendData(responseData);
+            if (this.isConnectionAlive()) {
+                responseData.messageType = "response";
+                responseData.requestName = request.requestName;
+                this.sendData(responseData);
+            }
         }
     }
 
@@ -248,7 +319,7 @@ define(require => {
                         let id = this._game.askNewID();
                         let player = new poker.Player(id, name, budget);
                         let remotePlayer = new RemotePlayer(name, conn.peer, player, this._game);
-                        remotePlayer.connect().then(()=>{
+                        remotePlayer.connect().then(() => {
                             let queueLen = this._game.registerPlayer(remotePlayer);
                             remotePlayer.notifyEvent(new events.QueueInfo(queueLen))
                                 .then(() => console.log("notification sent to " + remotePlayer.player.name));

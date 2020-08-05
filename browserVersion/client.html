@@ -120,6 +120,13 @@
                             }
                         }
 
+                        disconnectAndDestroy(){
+                            this._connection.close();
+                            if(!!this._peer && !this._peer.destroyed){
+                                this._peer.destroy();
+                            }
+                        }
+
                         sendData(message) {
                             console.log("Sending message:");
                             console.log(message);
@@ -184,13 +191,27 @@
                         }
                     }
 
+                    let pl = null;
+
                     async function startClient(){
                         let name = await textInOutCallbacks.promptCallback("What is your name?");
                         let budgetStr = await textInOutCallbacks.promptCallback("What is your initial budget?");
-                        let pl = new PlayerClient(name + "clientPeer", name, parseInt(budgetStr));
+                        pl = new PlayerClient(name + "clientPeer", name, parseInt(budgetStr));
                         puts("registering ...");
                         setTimeout((() => pl.register("room0")), 500);
 
+                    }
+
+                    $("#disconnectButton").click(()=>{
+                        if (pl !== undefined && pl !== null) {
+                            pl.disconnectAndDestroy();
+                        }
+                    })
+
+                    window.onunload = window.onbeforeunload = (e) => {
+                        if (pl !== undefined && pl !== null) {
+                            pl.disconnectAndDestroy();
+                        }
                     }
 
                     startClient();
@@ -200,6 +221,8 @@
     <title>Client</title>
 </head>
 <body style="background-color:white">
+<input type="button" value="DISCONNECT" id="disconnectButton">
+<br>
 <div id="divo"></div>
 </body>
 </html>

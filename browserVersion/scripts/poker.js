@@ -1110,9 +1110,16 @@ define((require) => {
         }
 
         deregisterPlayer(playerInterface) {
+            let prevPlIntfsSize = this._playerInterfaces.length;
             this._playerInterfaces = this._playerInterfaces.filter(
                 p => p.player.id !== playerInterface.player.id
             );
+            let curPlIntfsSize = this._playerInterfaces.length;
+
+            if (prevPlIntfsSize !== curPlIntfsSize) {
+                puts(playerInterface + " left the lobby.");
+            }
+
             let prevQueueSize = this._enteringPlayersQueue.length;
             this._enteringPlayersQueue = this._enteringPlayersQueue.filter(
                 p => p.player.id !== playerInterface.player.id
@@ -1120,6 +1127,7 @@ define((require) => {
             let curQueueSize = this._enteringPlayersQueue.length;
             if (prevQueueSize !== curQueueSize) {
                 // informing all the players enqueued about the new queue size
+                puts(playerInterface + " (queued) left the lobby.");
                 this.broadCastQueueInformation();
             }
         }
@@ -1190,6 +1198,7 @@ define((require) => {
                 do {
                     await this.waitForEnoughPlayers();
                     puts("There are enough players. Awaiting 10 seconds for round start.");
+                    //TODO event
                     await sleep(10_000);
                 } while (this.playerInterfaces.length < this._minPlayersInGame);
                 let r = this.createRound();

@@ -47,6 +47,8 @@ define((require) => {
                     return new QueueInfo(object._queueSize);
                 case "PlayersBeforeYou":
                     return new PlayersBeforeYou(object._playersBeforeYou);
+                case "PeerDisconnected":
+                    return new PeerDisconnected(object._playerName);
                 default:
                     return new PokerEvent();
             }
@@ -451,6 +453,29 @@ define((require) => {
         }
     }
 
+    class PeerDisconnected extends PokerEvent{
+        _playerName;
+
+
+        constructor(playerName) {
+            super();
+            this._playerName = playerName;
+        }
+
+
+        get playerName() {
+            return this._playerName;
+        }
+
+        getEventType() {
+            return "PeerDisconnected";
+        }
+
+        toString(){
+            return "(event: remote peer for player '" + this.playerName + "' disconnected)";
+        }
+    }
+
     return {
         PokerEvent,
         PlayerDisqualified,
@@ -468,5 +493,6 @@ define((require) => {
         ShowDownResults,
         QueueInfo,
         PlayersBeforeYou,
+        PeerDisconnected,
     };
 });
