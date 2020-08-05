@@ -182,12 +182,9 @@
                             puts("You already betted: " + decisionInput._myPreviousBet);
                             puts("Possible moves: ")
                             puts(" - " + formattedMoves.join("\n - "))
-
-                            //TODO while (true) {
+                            
                             let input = await textInOutCallbacks.promptCallback("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ");
                             this.sendData({messageType: "decision", decision: input});
-                            //TODO await for ok from server, otherwise re-ask
-                            //TODO }
                         }
                     }
 
