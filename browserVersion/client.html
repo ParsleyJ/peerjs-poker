@@ -133,6 +133,7 @@
                             this._connection.send(message);
                         }
 
+
                         async request(requestName, argument) {
                             this.sendData({messageType: "request", requestName, argument});
                             return await this._messageQueue.dequeue(m => m !== undefined && m.messageType === "response");
@@ -182,7 +183,7 @@
                             puts("You already betted: " + decisionInput._myPreviousBet);
                             puts("Possible moves: ")
                             puts(" - " + formattedMoves.join("\n - "))
-                            
+
                             let input = await textInOutCallbacks.promptCallback("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ");
                             this.sendData({messageType: "decision", decision: input});
                         }

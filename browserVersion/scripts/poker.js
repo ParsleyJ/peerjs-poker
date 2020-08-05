@@ -649,6 +649,8 @@ define((require) => {
 
                 puts("(" + pl + ") decided to " + decision);
 
+                let invalidDecision = false;
+
                 // what to do depending on the type of the decision:
                 switch (true) {
                     case decision instanceof FoldDecision: {
@@ -701,11 +703,14 @@ define((require) => {
 
                     case decision instanceof BetDecision: {// handles raise too
                         let toAdded = decision.howMuch - previousPlayerBet;
-                        if (decision.howMuch < this.maxBet) {
+                        if (decision.howMuch < this.maxBet || toAdded > pl.player.budget) {
                             //TODO: instead of throwing, re-ask to player to decide (maybe restarting from while
                             //      without increasing the playerTurnCounter is sufficient, but not sure):
-                            throw "Invalid bet! The player attempted to bet " + decision.howMuch +
-                            " but it had to bet at least " + this.maxBet;
+                            puts("Invalid bet! The player attempted to bet " + decision.howMuch +
+                            " but it had to bet at least " + this.maxBet);
+                            puts("Reasking player.");
+                            invalidDecision = true;
+                            break;
                         }
 
                         this.putBet(pl, decision.howMuch);
@@ -734,15 +739,20 @@ define((require) => {
                     }
                         break;
 
-                    default:
                     case decision instanceof CheckDecision: {
                         this.game.broadCastEvent(new events.CheckDone(pl.player.name));
                         //do nothing
                     }
                         break;
+                    default:{
+                        invalidDecision = true;
+                    }
+
                 }
                 puts();
-                playerTurnCounter++;
+                if(!invalidDecision) {
+                    playerTurnCounter++;
+                }
             }
             this.round.requiredBetForCall = this.maxBet;
         }
