@@ -319,15 +319,24 @@ define(require => {
                         let id = this._game.askNewID();
                         let player = new poker.Player(id, name, budget);
                         let remotePlayer = new RemotePlayer(name, conn.peer, player, this._game);
-                        remotePlayer.connect().then(() => {
-                            let queueLen = this._game.registerPlayer(remotePlayer);
-                            remotePlayer.notifyEvent(new events.QueueInfo(queueLen))
-                                .then(() => console.log("notification sent to " + remotePlayer.player.name));
-                        });
+                        let retry = false;
+                        do {
+                            retry = false;
+                            remotePlayer.connect().then(() => {
+                                let queueLen = this._game.registerPlayer(remotePlayer);
+                                remotePlayer.notifyEvent(new events.QueueInfo(queueLen))
+                                    .then(() => console.log("notification sent to " + remotePlayer.player.name));
+                                conn.close();
+                            }).catch(e => {
+                                console.log(e);
+                                retry = true;
+                            });
+                        } while (retry)
+
 
                     }
                 });
-                //TODO handle on connection close
+
             })
         }
 
