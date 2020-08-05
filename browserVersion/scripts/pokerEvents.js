@@ -1,6 +1,8 @@
 define((require) => {
     const {Card} = require("./Card");
 
+    const {HandPattern} = require('./handPatterns');
+
 
     class PokerEvent {
         getEventType(){
@@ -14,11 +16,12 @@ define((require) => {
                 case "PlayerWonRound":
                     return new PlayerWonRound(object._player, object._howMuch);
                 case "PhaseStarted":
-                    return new PhaseStarted(object._phaseName, object._plate, object._table);
+                    return new PhaseStarted(object._phaseName, object._plate,
+                        object._table.map( c => Card.fromObj(c)));
                 case "RoundStarted":
                     return new RoundStarted(object._roundID, object._players);
                 case "CardsDealt":
-                    return new CardsDealt(object._cards.map( c => Card.fromObj(c)));
+                    return new CardsDealt(object._cards.map(c => Card.fromObj(c)));
                 case "PlayerDeciding":
                     return new PlayerDeciding(object._player);
                 case "InsufficientFundsToBet":
@@ -33,6 +36,13 @@ define((require) => {
                     return new CallDone(object._player, object._betAmount);
                 case "CheckDone":
                     return new CheckDone(object._player);
+                case "ShowDownResults":
+                    return new ShowDownResults(object._showDownRanking.map(
+                        rankEntry => ({
+                            player:rankEntry.player,
+                            pattern: HandPattern.fromObject(rankEntry.pattern)
+                        })
+                    ));
                 default:
                     return new PokerEvent();
             }
@@ -364,6 +374,30 @@ define((require) => {
         }
     }
 
+    class ShowDownResults extends PokerEvent {
+        _showDownRanking;
+
+
+        constructor(showDownRanking) {
+            super();
+            this._showDownRanking = showDownRanking;
+        }
+
+
+        get showDownRanking() {
+            return this._showDownRanking;
+        }
+
+        getEventType() {
+            return "ShowDownResults";
+        }
+
+        toString(){
+            return "(event: ShowDown completed, results: [" + this.showDownRanking.map(
+                entry => "(player: '" + entry.player + "'; pattern: " + entry.pattern + ")"
+            ) + "])";
+        }
+    }
 
     return {
         PokerEvent,
@@ -378,6 +412,7 @@ define((require) => {
         BetDone,
         FoldDone,
         CallDone,
-        CheckDone
+        CheckDone,
+        ShowDownResults
     };
 });
