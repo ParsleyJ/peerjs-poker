@@ -1,3 +1,4 @@
+// noinspection InfiniteLoopJS
 define((require) => {
     const events = require('./pokerEvents');
     const {sleep} = require('./util');
@@ -483,7 +484,8 @@ define((require) => {
             for (let pl of this.game.playerInterfaces) {
                 let cards = this.deck.draw(2);
                 this.setHoleForPlayer(pl, cards);
-                await pl.notifyEvent(new events.CardsDealt(cards));
+                pl.notifyEvent(new events.CardsDealt(cards))
+                    .then(() => console.log("notification sent to " + pl.player.name));
             }
         }
     }
@@ -602,7 +604,8 @@ define((require) => {
                 if (pl.player.budget < neededBet) {
                     //insufficient funds to call or bet
                     puts("" + pl + " has unsufficient funds and can only fold or leave.");
-                    await pl.notifyEvent(new events.InsufficientFundsToBet(pl.player.budget, neededBet));
+                    pl.notifyEvent(new events.InsufficientFundsToBet(pl.player.budget, neededBet))
+                        .then(() => console.log("notification sent to " + pl.player.name));
                     possibleMoves = ["fold", "leave"];
                 } else if (pl.player.budget === neededBet) {
                     // the player has just enough money to call
@@ -1074,33 +1077,35 @@ define((require) => {
     }
 
 
-    class Game {
+    class GameRoom {
         _playerInterfaces = [];
+        _minPlayersInGame = 2;
         _maxPlayersInGame = 4;
         _rules = Rules.DEFAULT;
         _roundCounter = 0;
         _enteringPlayersQueue = [];
         _keyCounter = 0;
         _gameStarted = false;
-        _endOfGameCallback;
 
-
-        constructor(endOfGameCallback) {
-            this._endOfGameCallback = endOfGameCallback;
-        }
 
         askNewID() {
             return this._keyCounter++;
         }
 
+        /**
+         * If there are vacant seats, it registers the player to the next round and returns -1.
+         * Otherwise, the player is enqueued, and the size of the queue is returned.
+         * @param playerInterface
+         */
         registerPlayer(playerInterface) {
-
             if (this.gameStarted || this.playerInterfaces.length >= this._maxPlayersInGame) {
                 this._enteringPlayersQueue.push(playerInterface);
                 puts("" + playerInterface + " joined the lobby, enqueued.");
+                return this._enteringPlayersQueue.length;
             } else {
                 this._playerInterfaces.push(playerInterface);
                 puts("" + playerInterface + " joined the lobby, ready to start.");
+                return -1;
             }
         }
 
@@ -1108,9 +1113,15 @@ define((require) => {
             this._playerInterfaces = this._playerInterfaces.filter(
                 p => p.player.id !== playerInterface.player.id
             );
+            let prevQueueSize = this._enteringPlayersQueue.length;
             this._enteringPlayersQueue = this._enteringPlayersQueue.filter(
                 p => p.player.id !== playerInterface.player.id
             );
+            let curQueueSize = this._enteringPlayersQueue.length;
+            if (prevQueueSize !== curQueueSize) {
+                // informing all the players enqueued about the new queue size
+                this.broadCastQueueInformation();
+            }
         }
 
         incCounter() {
@@ -1141,42 +1152,50 @@ define((require) => {
             return this._gameStarted;
         }
 
-        async startGame() {
-            if (this.playerInterfaces.length < 2) {
-                throw "Not enough players to start a game.";
-            }
-            this._gameStarted = true;
-            for (let r of this.generateRounds()) {
-                // add all the players in the queue which are not already registered
-                let addedPlayers = 0;
-                for (let pl of this._enteringPlayersQueue) {
-                    if (this.playerInterfaces.length >= this._maxPlayersInGame) {
-                        break;
-                    }
-                    if (!this._playerInterfaces.some(pl2 => pl2.player.id === pl.player.id)) {
-                        this._playerInterfaces.push(pl);
-                        addedPlayers++;
-                        puts("" + pl + " was in the lobby and now enters the game.");
-                    }
+        syphonPlayersFromQueue() {
+            // adds any enqueued players, if they are present and while there are vacant seats
+            let addedPlayers = 0;
+            for (let pl of this._enteringPlayersQueue) {
+                if (this.playerInterfaces.length >= this._maxPlayersInGame) {
+                    break;
                 }
-                // remove the added players from the queue
-                this._enteringPlayersQueue.splice(0, addedPlayers);
-
-                if (this.playerInterfaces.length < 2) {
-                    //TODO await for someone to register?
-                    this.endGame();
-                } else {
-                    await r.executeRound();
+                if (!this._playerInterfaces.some(pl2 => pl2.player.id === pl.player.id)) {
+                    this._playerInterfaces.push(pl);
+                    addedPlayers++;
+                    puts("" + pl + " was in the lobby and now enters the game.");
                 }
             }
 
+            // remove the added players from the queue
+            this._enteringPlayersQueue.splice(0, addedPlayers);
+
+            if (addedPlayers !== 0) {
+                this.broadCastQueueInformation();
+            }
         }
 
-        * generateRounds() {
-            while (this._gameStarted) {
-                let r = new Round(this, this.roundCounter);
-                this.incCounter();
-                yield r;
+        async waitForEnoughPlayers() {
+            if(this.playerInterfaces.length < this._minPlayersInGame){
+                puts("Waiting for enough players to join...");
+            }
+            while (this.playerInterfaces.length < this._minPlayersInGame) {
+                await sleep(2000);
+                this.syphonPlayersFromQueue();
+            }
+        }
+
+        async gameRoomLoop() {
+            // noinspection InfiniteLoopJS
+            while (true) {
+                do {
+                    await this.waitForEnoughPlayers();
+                    puts("There are enough players. Awaiting 10 seconds for round start.");
+                    await sleep(10_000);
+                } while (this.playerInterfaces.length < this._minPlayersInGame);
+                let r = this.createRound();
+                this._gameStarted = true;
+                await r.executeRound();
+                this._gameStarted = false;
             }
         }
 
@@ -1184,11 +1203,6 @@ define((require) => {
             let r = new Round(this, this.roundCounter);
             this.incCounter();
             return r;
-        }
-
-        endGame() {
-            this._endOfGameCallback(this.playerInterfaces, this.roundCounter);
-            this._gameStarted = false;
         }
 
         isEnqueued(player) {
@@ -1209,6 +1223,19 @@ define((require) => {
                     pl.notifyEvent(event)
                         .then(() => console.log("notification sent to " + pl.player.name));
                 }
+            }
+        }
+
+        broadCastQueueInformation() {
+            this.broadCastEvent(
+                new events.QueueInfo(this._enteringPlayersQueue.length),
+                this.isEnqueued
+            );
+            let i = 0;
+            for (let pl of this._enteringPlayersQueue) {
+                pl.notifyEvent(new events.PlayersBeforeYou(i))
+                    .then(() => console.log("notification sent to " + pl.player.name));
+                i++;
             }
         }
     }
@@ -1237,7 +1264,7 @@ define((require) => {
         Full,
         Poker,
         // general game stuff
-        Game,
+        GameRoom,
         Player,
         Rules,
         Round,

@@ -38,9 +38,9 @@
                     });
                 }
 
-                let game = new poker.Game();
+                let game = new poker.GameRoom();
 
-                let server = new remotePlay.GameRoom("room0", game);
+                let server = new remotePlay.RegistrationServer("room0", game);
                 server.listen();
 
                 $("#addLocalHumanButton").click(() => {
@@ -56,11 +56,9 @@
                 });
 
                 $("#startGameButton").click(() => {
-                    game.startGame();
                     $("#startGameButton").remove();
+                    game.gameRoomLoop();
                 });
-
-
 
             }));
     </script>
@@ -69,7 +67,7 @@
 <body style="background-color:white">
 <input type="button" id="addAIButton" title="ADD AI" value="ADD AI">
 <input type="button" id="addLocalHumanButton" title="ADD LOCAL HUMAN" value="ADD LOCAL HUMAN">
-<input type="button" id="startGameButton" title="START GAME" value="START GAME">
+<input type="button" id="startGameButton" title="START SERVER" value="START SERVER">
 <br>
 <div id="divo"></div>
 </body>

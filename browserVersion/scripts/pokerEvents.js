@@ -43,6 +43,10 @@ define((require) => {
                             pattern: HandPattern.fromObject(rankEntry.pattern)
                         })
                     ));
+                case "QueueInfo":
+                    return new QueueInfo(object._queueSize);
+                case "PlayersBeforeYou":
+                    return new PlayersBeforeYou(object._playersBeforeYou);
                 default:
                     return new PokerEvent();
             }
@@ -399,6 +403,54 @@ define((require) => {
         }
     }
 
+    class QueueInfo extends PokerEvent{
+        _queueSize;
+
+        constructor(queueSize) {
+            super();
+            this._queueSize = queueSize;
+        }
+
+        get queueSize() {
+            return this._queueSize;
+        }
+
+        getEventType() {
+            return "QueueInfo";
+        }
+
+        toString() {
+            return "(event: "+(this._queueSize ===-1?
+                "Added to players of the round which is about to start"
+                :
+                "Added to queue of players waiting for vacant seats, queue size: " + this._queueSize)
+            +" )"
+        }
+    }
+
+    class PlayersBeforeYou extends PokerEvent{
+        _playersBeforeYou;
+
+
+        constructor(playersBeforeYou) {
+            super();
+            this._playersBeforeYou = playersBeforeYou;
+        }
+
+
+        get playersBeforeYou() {
+            return this._playersBeforeYou;
+        }
+
+        getEventType() {
+            return "PlayersBeforeYou";
+        }
+
+        toString(){
+            return "(event: there are " + this.playersBeforeYou + " players in queue before you)";
+        }
+    }
+
     return {
         PokerEvent,
         PlayerDisqualified,
@@ -413,6 +465,8 @@ define((require) => {
         FoldDone,
         CallDone,
         CheckDone,
-        ShowDownResults
+        ShowDownResults,
+        QueueInfo,
+        PlayersBeforeYou,
     };
 });

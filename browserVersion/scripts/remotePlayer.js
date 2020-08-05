@@ -119,23 +119,29 @@ define(require => {
 
 
         connect() {
-            this._connection = this._peer.connect(this._otherPeerID);
-            this._connection.serialization = 'json';
-            this._connection.on("data", data => {
-                if (data.messageType !== undefined) {
-                    console.log("received data from " + this._otherPeerID + ":");
-                    console.log(data);
-                    console.log("enqueing...");
-                    this._messageQueue.enqueue(data);
-                }
-            });
-            this._connection.on("open", async () => {
-                for await (const request of this.extractRequests()) {
-                    if (request !== undefined) {
-                        this.handleRequest(request);
+            return new Promise(resolve => {
+                this._connection = this._peer.connect(this._otherPeerID);
+                this._connection.serialization = 'json';
+                this._connection.on("data", data => {
+                    if (data.messageType !== undefined) {
+                        console.log("received data from " + this._otherPeerID + ":");
+                        console.log(data);
+                        console.log("enqueing...");
+                        this._messageQueue.enqueue(data);
                     }
-                }
-            });
+                });
+                this._connection.on("open", async () => {
+                    console.log("connection between player interface and remote client opened.")
+                    resolve();
+                    for await (const request of this.extractRequests()) {
+                        if (request !== undefined) {
+                            this.handleRequest(request);
+                        }
+                    }
+                });
+                //TODO handle connection close & error
+            })
+
         }
 
 
@@ -215,7 +221,7 @@ define(require => {
     }
 
 
-    class GameRoom {
+    class RegistrationServer {
         _peer;
         _game;
 
@@ -242,8 +248,12 @@ define(require => {
                         let id = this._game.askNewID();
                         let player = new poker.Player(id, name, budget);
                         let remotePlayer = new RemotePlayer(name, conn.peer, player, this._game);
-                        remotePlayer.connect();
-                        this._game.registerPlayer(remotePlayer);
+                        remotePlayer.connect().then(()=>{
+                            let queueLen = this._game.registerPlayer(remotePlayer);
+                            remotePlayer.notifyEvent(new events.QueueInfo(queueLen))
+                                .then(() => console.log("notification sent to " + remotePlayer.player.name));
+                        });
+
                     }
                 });
                 //TODO handle on connection close
@@ -254,7 +264,7 @@ define(require => {
 
 
     return {
-        decisionFilter, clientRequestFilter, MessageQueue, RemotePlayer, GameRoom
+        decisionFilter, clientRequestFilter, MessageQueue, RemotePlayer, RegistrationServer
     };
 
 });
