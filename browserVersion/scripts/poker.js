@@ -1238,7 +1238,7 @@ define((require) => {
         broadCastQueueInformation() {
             this.broadCastEvent(
                 new events.QueueInfo(this._enteringPlayersQueue.length),
-                this.isEnqueued
+                (pl) => this.isEnqueued(pl)
             );
             let i = 0;
             for (let pl of this._enteringPlayersQueue) {
