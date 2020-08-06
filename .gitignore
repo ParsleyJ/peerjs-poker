@@ -243,3 +243,6 @@ fabric.properties
 .idea/codestream.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/webstorm,node,macos
+.idea/jsLibraryMappings.xml
+.idea/peerjs-poker.iml
+.idea/jsLibraryMappings.xml
