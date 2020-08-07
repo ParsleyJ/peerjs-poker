@@ -1113,6 +1113,7 @@ define((require) => {
             } else {
                 this._playerInterfaces.push(playerInterface);
                 puts("" + playerInterface + " joined the lobby, ready to start.");
+                this.broadCastEvent(new events.PlayerJoinedRound(playerInterface.player.name));
                 return -1;
             }
         }
@@ -1206,7 +1207,9 @@ define((require) => {
             // noinspection InfiniteLoopJS
             while (true) {
                 do {
-
+                    if(this.playerInterfaces.length < this._maxPlayersInGame){
+                        this.syphonPlayersFromQueue();
+                    }
                     await this.waitForEnoughPlayers();
                     puts("There are enough players. Awaiting 10 seconds for round start.");
                     this.broadCastEvent(new events.RoundAboutToStart(

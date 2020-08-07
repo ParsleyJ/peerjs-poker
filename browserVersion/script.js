@@ -33,7 +33,10 @@ $(document).ready(() => {
                     // this._peer = new Peer(clientID);
                 }
 
-                register(to) {
+                register(to, clbk) {
+                    console.log(clbk);
+                    console.log(typeof (clbk));
+
                     puts("registering to " + to + " ...");
                     let registerConnection = this._peer.connect(to);
 
@@ -65,6 +68,9 @@ $(document).ready(() => {
                         });
 
                         this._connection.on("open", async () => {
+                            console.log(clbk);
+                            console.log(typeof (clbk));
+                            clbk();
                             for await (const message of this.extractMessages(
                                 m => m === undefined || m.messageType !== "response"
                             )) { // if the message is not a response to a request:
@@ -151,7 +157,7 @@ $(document).ready(() => {
                     puts("Possible moves: ")
                     puts(" - " + formattedMoves.join("\n - "))
 
-                    let input = await prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
+                    let input = prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
                     this.sendData({messageType: "decision", decision: input});
                 }
 
@@ -284,7 +290,7 @@ $(document).ready(() => {
                 }
             }
 
-            window.logPlayer = async function () {
+            window.logPlayer = function () {
                 document.getElementById("form_container").style.display = "none";
                 let nickname = document.getElementById("nick").value;
                 let money = document.getElementById("money").value;
@@ -302,16 +308,25 @@ $(document).ready(() => {
                     }
                 }
 
-                async function startClient(){
-                    window.pl = new PlayerClient(nickname + "clientPeer", nickname, parseInt(money));
-                    puts("registering ...");
-                    setTimeout((() => window.pl.register("room0")), 500);
+                function startClient(){
+                    return new Promise(resolve => {
+                        window.pl = new PlayerClient(nickname + "clientPeer", nickname, parseInt(money));
+                        puts("registering ...");
+                        setTimeout((() => {
+                            window.pl.register("room0", function(){
+                                resolve()
+                            });
+                        }), 500);
+                    })
                 }
 
-                await startClient();
-                displayBoard();
-                await placePlayerOnBoard();
-                // checkForOtherPlayers();
+                startClient().then(()=>{
+                    displayBoard();
+                    placePlayerOnBoard().then(()=>{
+                        // checkForOtherPlayers();
+                    })
+                });
+
                 return false;
             }
 
