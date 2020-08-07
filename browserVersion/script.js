@@ -174,9 +174,6 @@ $(document).ready(() => {
             var cards = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
             var suits = ["diamonds", "hearts", "spades", "clubs"];
             var deck = new Array();
-            var playerBoard = [true, true, true, true]
-            var players = new Array();
-            var moneys = new Array();
 
             function getDeck() {
                 var deck = new Array();
@@ -186,7 +183,10 @@ $(document).ready(() => {
                         deck.push(card);
                     }
                 }
+                //Posso usare gli script nella require per generare il deck
+                //E per fare lo shuffle
                 return deck;
+
             }
 
             function shuffle() {
@@ -265,29 +265,18 @@ $(document).ready(() => {
             }
 
             async function placePlayerOnBoard() {
-                var playerPlaced = false;
-                for (var i = 1; i <= 4; ++i) {
-                    if (playerBoard[i - 1]) {
+                let status = await window.pl.gameStatus();
+                let players = status.players;
+                for (let i = 1; i <= players.length; ++i) {
                         //Se ci sono già altri giocatori, mi servono le loro info dal server e su quali board (1-4) sono piazzati
                         document.getElementById("player_board" + i).style.display = "block";
                         document.getElementById("player_name" + i).style.display = "block";
                         document.getElementById("player_money" + i).style.display = "block";
                         document.getElementById("chips" + i).style.display = "block";
-                        document.getElementById("player_name" + i).innerHTML = players[i - 1];
-                        let status = await window.pl.gameStatus()
-                        document.getElementById("player_name" + i).innerHTML = status.players[i-1].name;
-                        document.getElementById("player_money" + i).innerHTML = moneys[i - 1];
-                        playerPlaced = true;
-                        playerBoard[i - 1] = false;
-                        break;
-                    }
-                }
-
-                if (!playerPlaced) {
-                    alert("No space for another player!");
+                        document.getElementById("player_name" + i).innerHTML = players[i-1].name;
+                        document.getElementById("player_money" + i).innerHTML = players[i-1].money;
                 }
             }
-
 
             function checkForOtherPlayers() {
                 if (players.length < 2) {
@@ -295,12 +284,10 @@ $(document).ready(() => {
                 }
             }
 
-
-
-            window.logPlayer = function () {
+            window.logPlayer = async function () {
                 document.getElementById("form_container").style.display = "none";
-                var nickname = document.getElementById("nick").value;
-                var money = document.getElementById("money").value;
+                let nickname = document.getElementById("nick").value;
+                let money = document.getElementById("money").value;
                 window.pl = null;
 
                 // $("#disconnectButton").click(()=>{
@@ -321,13 +308,9 @@ $(document).ready(() => {
                     setTimeout((() => window.pl.register("room0")), 500);
                 }
 
-                startClient();
-
-
-                // players.push(nickname);
-                // moneys.push(money);
-                // displayBoard();
-                // placePlayerOnBoard();
+                await startClient();
+                displayBoard();
+                await placePlayerOnBoard();
                 // checkForOtherPlayers();
                 return false;
             }
