@@ -91,10 +91,6 @@ function displayForm(){
 
 function displayBoard() {
     document.getElementById("cards_board").style.display = "block";
-    document.getElementById("player_board1").style.display = "block";
-    document.getElementById("player_board2").style.display = "block";
-    document.getElementById("player_board3").style.display = "block";
-    document.getElementById("player_board4").style.display = "block";
     document.getElementById("game_title").style.textAlign = "left";
     document.getElementById("logArea").style.display = "block";
 }
@@ -103,6 +99,8 @@ function placePlayerOnBoard() {
     var playerPlaced = false;
     for(var i=1; i<=4; ++i){
         if(playerBoard[i-1]){
+            //Se ci sono già altri giocatori, mi servono le loro info dal server e su quali board (1-4) sono piazzati
+            document.getElementById("player_board"+i).style.display = "block";
             document.getElementById("player_name"+i).style.display = "block";
             document.getElementById("player_money"+i).style.display = "block";
             document.getElementById("chips"+i).style.display = "block";

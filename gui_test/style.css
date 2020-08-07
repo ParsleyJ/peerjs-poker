@@ -2,6 +2,11 @@
     font-family: Castellar;
 }
 
+@font-face {
+    font-family: 'CoffeeTin';
+    src: url("font/CoffeetinInitials-YXJ2.ttf");
+}
+
 * {
     box-sizing: border-box;
 }
@@ -17,10 +22,11 @@ body{
 
 .game_title{
     color: white;
-    font-family: Arial;
+    font-family: CoffeeTin;
     font-weight: normal;
     text-align: center;
     font-size: 6em;
+    padding: 10px;
     margin: auto 10px auto auto;
 }
 
