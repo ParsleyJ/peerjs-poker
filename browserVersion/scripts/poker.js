@@ -704,8 +704,6 @@ define((require) => {
                     case decision instanceof BetDecision: {// handles raise too
                         let toAdded = decision.howMuch - previousPlayerBet;
                         if (decision.howMuch < this.maxBet || toAdded > pl.player.budget) {
-                            //TODO: instead of throwing, re-ask to player to decide (maybe restarting from while
-                            //      without increasing the playerTurnCounter is sufficient, but not sure):
                             puts("Invalid bet! The player attempted to bet " + decision.howMuch +
                             " but it had to bet at least " + this.maxBet);
                             puts("Reasking player.");
@@ -1181,6 +1179,7 @@ define((require) => {
                     this._playerInterfaces.push(pl);
                     addedPlayers++;
                     puts("" + pl + " was in the lobby and now enters the game.");
+                    this.broadCastEvent(new events.PlayerJoinedRound(pl.player.name));
                 }
             }
 
@@ -1194,6 +1193,7 @@ define((require) => {
 
         async waitForEnoughPlayers() {
             if(this.playerInterfaces.length < this._minPlayersInGame){
+                this.broadCastEvent(new events.AwaitingForPlayers());
                 puts("Waiting for enough players to join...");
             }
             while (this.playerInterfaces.length < this._minPlayersInGame) {
@@ -1206,9 +1206,12 @@ define((require) => {
             // noinspection InfiniteLoopJS
             while (true) {
                 do {
+
                     await this.waitForEnoughPlayers();
                     puts("There are enough players. Awaiting 10 seconds for round start.");
-                    //TODO event
+                    this.broadCastEvent(new events.RoundAboutToStart(
+                        this._playerInterfaces.map(pli => pli.player.name)
+                    ));
                     await sleep(10_000);
                 } while (this.playerInterfaces.length < this._minPlayersInGame);
                 let r = this.createRound();

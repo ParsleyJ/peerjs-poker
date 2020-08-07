@@ -49,6 +49,12 @@ define((require) => {
                     return new PlayersBeforeYou(object._playersBeforeYou);
                 case "PeerDisconnected":
                     return new PeerDisconnected(object._playerName);
+                case "RoundAboutToStart":
+                    return new RoundAboutToStart(object._players);
+                case "AwaitingForPlayers":
+                    return new AwaitingForPlayers();
+                case "PlayerJoinedRound":
+                    return new PlayerJoinedRound(object._player);
                 default:
                     return new PokerEvent();
             }
@@ -476,6 +482,60 @@ define((require) => {
         }
     }
 
+    class RoundAboutToStart extends PokerEvent{
+        _players;
+
+        constructor(players) {
+            super();
+            this._players = players;
+        }
+
+        get players() {
+            return this._players;
+        }
+
+        getEventType() {
+            return "RoundAboutToStart";
+        }
+
+        toString(){
+            return "(event: the round about to start! {players: " + players + "})";
+        }
+    }
+
+    class PlayerJoinedRound extends PokerEvent{
+        _player;
+
+
+        constructor(player) {
+            super();
+            this._player = player;
+        }
+
+
+        get player() {
+            return this._player;
+        }
+
+        getEventType() {
+            return "PlayerJoinedRound";
+        }
+
+        toString(){
+            return "(event: player " + this._player + " joined this round)";
+        }
+    }
+
+    class AwaitingForPlayers extends PokerEvent{
+        getEventType() {
+            return "AwaitingForPlayers";
+        }
+
+        toString(){
+            return "(event: round countdown aborted)";
+        }
+    }
+
     return {
         PokerEvent,
         PlayerDisqualified,
@@ -494,5 +554,8 @@ define((require) => {
         QueueInfo,
         PlayersBeforeYou,
         PeerDisconnected,
+        RoundAboutToStart,
+        PlayerJoinedRound,
+        AwaitingForPlayers
     };
 });
