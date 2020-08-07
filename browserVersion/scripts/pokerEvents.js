@@ -499,7 +499,7 @@ define((require) => {
         }
 
         toString(){
-            return "(event: the round about to start! {players: " + players + "})";
+            return "(event: the round about to start! {players: " + this.players + "})";
         }
     }
 

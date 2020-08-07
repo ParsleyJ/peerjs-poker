@@ -206,7 +206,7 @@
                         }
                     })
 
-                    window.onunload = window.onbeforeunload = (e) => {
+                    window.onunload = window.onbeforeunload = () => {
                         if (pl !== undefined && pl !== null) {
                             pl.disconnectAndDestroy();
                         }

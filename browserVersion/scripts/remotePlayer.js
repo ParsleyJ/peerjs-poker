@@ -275,6 +275,22 @@ define(require => {
                     case "budget": {
                         this.respond(request, {budget: this.player.budget})
                     }
+
+                    case "gameStatus":{
+                        let pls = []
+
+                        for(let pli of this.game.playerInterfaces){
+                            pls.push({
+                                name: pli.player.name,
+                                money: pli.player.budget
+                            })
+                        }
+
+                        this.respond(request, {
+                            roundActive: this.game._gameStarted,
+                            players:pls
+                        });
+                    }
                         break;
                 }
             } else {
