@@ -247,3 +247,4 @@ fabric.properties
 .idea/peerjs-poker.iml
 .idea/jsLibraryMappings.xml
 /.idea/jsLibraryMappings.xml
+*.iml

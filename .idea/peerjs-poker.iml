@@ -11,7 +11,5 @@
     <orderEntry type="library" name="jquery" level="application" />
     <orderEntry type="library" name="peerjs" level="application" />
     <orderEntry type="library" name="peerjs" level="project" />
-    <orderEntry type="library" name="Node.js Core" level="project" />
-    <orderEntry type="library" name="jQuery" level="project" />
   </component>
 </module>

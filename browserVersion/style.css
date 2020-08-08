@@ -32,7 +32,7 @@ body{
 
 .logArea{
     height: 100px;
-    width: 400px;
+    width: 50%;
     position: absolute;
     right: 20px;
     top: 10px;
@@ -247,10 +247,9 @@ input[type=submit] {
 
 .chips2{
     border: none;
-    background: none;
-    height: 20px;
-    width: 20px;
-    padding: 10px;
+    height: 38px;
+    width: 60px;
+    float: right;
 }
 
 .player_money2{
@@ -287,10 +286,9 @@ input[type=submit] {
 
 .chips3{
     border: none;
-    background: none;
-    height: 20px;
-    width: 20px;
-    padding: 10px;
+    height: 38px;
+    width: 60px;
+    float: right;
 }
 
 .player_money3{
@@ -327,10 +325,9 @@ input[type=submit] {
 
 .chips4{
     border: none;
-    background: none;
-    height: 20px;
-    width: 20px;
-    padding: 10px;
+    height: 38px;
+    width: 60px;
+    float: right;
 }
 
 .player_money4{
