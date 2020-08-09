@@ -167,6 +167,17 @@ input[type=submit] {
     }
 }
 
+.plate{
+    background: radial-gradient(limegreen, transparent 70%);
+    color: white;
+    font-family: Arial;
+    font-weight: normal;
+    text-align: center;
+    font-size: 1em;
+    float: right;
+    padding: 10px;
+}
+
 .deck_image{
     border: none;
     background: none;
@@ -185,6 +196,7 @@ input[type=submit] {
     margin-right: 10px;
     margin-bottom: 10px;
     display: none;
+    position: relative;
 }
 
 .player_board1{

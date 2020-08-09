@@ -135,6 +135,19 @@ $(document).ready(() => {
                                             first = false;
                                         }
                                 }
+                                else if(event instanceof events.PhaseStarted){
+                                    let phase = event._phaseName;
+                                    alert(phase);
+                                    if(phase === "Flop betting"){
+                                        renderTable(phase, event._table, event._plate);
+                                    }
+                                    else if(phase === "Turn betting"){
+                                        renderTable(phase, event._table, event._plate);
+                                    }
+                                    else if(phase === "River betting"){
+                                        renderTable(phase, event._table, event._plate);
+                                    }
+                                }
                                 //TODO use the object event (see the various subclasses of PokerEvent)
                                 //TODO to update the client web interface
                                 puts("" + event);
@@ -224,6 +237,36 @@ $(document).ready(() => {
                 renderDeck();
             }
 
+            function renderTable(phase, cards, plate) {
+                let table = document.getElementById("cards_board");
+                let card = document.createElement("div");
+                let value = document.createElement("div");
+                let suit = document.createElement("div");
+                card.className = "card";
+                value.className = "value";
+
+                let c;
+                if(phase === "Flop betting"){
+                    c = cards[0];
+                    card.style.left = "200px";
+                }
+                if(phase === "Turn betting"){
+                    c = cards[1];
+                    card.style.left = "350px";
+                }
+                if(phase === "River betting"){
+                    c = cards[2];
+                    card.style.left = "500px";
+                }
+
+                card.style.bottom = "30px";
+                suit.className = "suit " + c._suit;
+                value.innerHTML = c._face;
+                card.appendChild(value);
+                card.appendChild(suit);
+                table.appendChild(card);
+                document.getElementById("plate").innerText = plate;
+            }
 
             function renderHandCard(player, number, suitVal, first) {
                 for(let i=1; i<4; ++i){
