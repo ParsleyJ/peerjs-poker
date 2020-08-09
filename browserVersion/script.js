@@ -186,7 +186,10 @@ $(document).ready(() => {
                     puts("Possible moves: ")
                     puts(" - " + formattedMoves.join("\n - "))
 
-                    let input = prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
+                    let input = null;
+                    while(input === null||input===undefined) {
+                        input = await prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
+                    }
                     this.sendData({messageType: "decision", decision: input});
                 }
 

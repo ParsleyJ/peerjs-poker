@@ -183,8 +183,9 @@ define(require => {
                 let decisionMessage;
                 let decisionText;
                 // we need a decision text
-                while (decisionText === undefined) {
+                while (decisionText === undefined || decisionText === null) {
                     // we need a decision message
+                    decisionMessage = undefined;
                     while (decisionMessage === undefined) {
                         // we recheck at every loop if the connection is still alive.
                         if(this.isConnectionAlive()){
