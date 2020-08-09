@@ -1,5 +1,5 @@
 $(document).ready(() => {
-    require(["./scripts/remotePlayer", "./scripts/pokerEvents", "./scripts/poker"],
+    require(["./scripts/remotePlayer", "./scripts/pokerEvents", "./scripts/poker", "./scripts/Card"],
         (remotePlayer, events, poker) => {
 
 
@@ -116,8 +116,24 @@ $(document).ready(() => {
                         switch (message.messageType) {
                             case "event": {
                                 let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
-                                if(event instanceof events.QueueInfo){
-                                    //TODO
+                                if(event instanceof events.CardsDealt){
+                                        let cards = event._cards;
+                                        let first = true;
+                                        for(let card of cards){
+                                            if(card._suit === 1){
+                                                renderHandCard(this, card._face, "spades", first);
+                                            }
+                                            else if(card._suit === 2){
+                                                renderHandCard(this, card._face, "clubs", first);
+                                            }
+                                            else if(card._suit === 3){
+                                                renderHandCard(this, card._face, "diamonds", first);
+                                            }
+                                            else if(card._suit === 4){
+                                                renderHandCard(this, card._face, "hearts", first);
+                                            }
+                                            first = false;
+                                        }
                                 }
                                 //TODO use the object event (see the various subclasses of PokerEvent)
                                 //TODO to update the client web interface
@@ -208,51 +224,42 @@ $(document).ready(() => {
                 renderDeck();
             }
 
-            function giveHand() {
-                // for 1000 turns
-                // switch the values of two random cards
-                for (var i = 0; i < 1000; i++) {
-                    var location1 = Math.floor((Math.random() * deck.length));
-                    var location2 = Math.floor((Math.random() * deck.length));
-                    var tmp = deck[location1];
-                    deck[location1] = deck[location2];
-                    deck[location2] = tmp;
-                }
-                renderHand();
-            }
 
-            function renderHand() {
-                const handSize = 2;
-                document.getElementById('deck').innerHTML = '';
-                for (var i = 0; i < handSize; i++) {
-                    var card = document.createElement("div");
-                    var value = document.createElement("div");
-                    var suit = document.createElement("div");
-                    card.className = "card";
-                    value.className = "value";
-                    suit.className = "suit " + deck[i].Suit;
-                    value.innerHTML = deck[i].Value;
-                    card.appendChild(value);
-                    card.appendChild(suit);
-                    document.getElementById("deck").appendChild(card);
-                }
-            }
-
-            function renderDeck() {
-                document.getElementById('deck').innerHTML = '';
-                for (var i = 0; i < deck.length; i++) {
-                    var card = document.createElement("div");
-                    var value = document.createElement("div");
-                    var suit = document.createElement("div");
-                    card.className = "card";
-                    value.className = "value";
-                    suit.className = "suit " + deck[i].Suit;
-
-                    value.innerHTML = deck[i].Value;
-                    card.appendChild(value);
-                    card.appendChild(suit);
-
-                    document.getElementById("deck").appendChild(card);
+            function renderHandCard(player, number, suitVal, first) {
+                for(let i=1; i<4; ++i){
+                    let playerName = document.getElementById("player_name" + i);
+                    if(playerName.innerText === player._playerName){
+                        let rightBoard = document.getElementById("player_board" + i);
+                        let card = document.createElement("div");
+                        let value = document.createElement("div");
+                        let suit = document.createElement("div");
+                        card.className = "card";
+                        value.className = "value";
+                        suit.className = "suit " + suitVal;
+                        value.innerHTML = number;
+                        if(first){
+                            card.style.left = "50px";
+                        }
+                        else{
+                            card.style.right = "50px";
+                        }
+                        card.appendChild(value);
+                        card.appendChild(suit);
+                        rightBoard.appendChild(card);
+                    }
+                    else{
+                        let opponentBoard = document.getElementById("player_board" + i);
+                        let card_back = document.createElement("img");
+                        card_back.className = "card_back";
+                        card_back.src = "img/card_back.png";
+                        if(first){
+                            card_back.style.left = "50px";
+                        }
+                        else{
+                            card_back.style.right = "50px";
+                        }
+                        opponentBoard.appendChild(card_back);
+                    }
                 }
             }
 

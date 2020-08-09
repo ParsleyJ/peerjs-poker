@@ -184,7 +184,6 @@ input[type=submit] {
     margin-left: 10px;
     margin-right: 10px;
     margin-bottom: 10px;
-    display: none;
 }
 
 .player_board1{
@@ -194,6 +193,15 @@ input[type=submit] {
     margin-bottom: 10px;
     display: none;
     float:left;
+    position: relative;
+}
+
+.card_image{
+    height: 150px;
+    width: 110px;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
 }
 
 .player_name1{
