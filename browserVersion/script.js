@@ -116,28 +116,30 @@ $(document).ready(() => {
                         switch (message.messageType) {
                             case "event": {
                                 let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
-                                if(event instanceof events.CardsDealt){
+                                //ROUND STARTED
+                                if(event instanceof events.RoundStarted){
+                                    if(event._roundID > 0){
+                                        clearTable(event._players);
+                                    }
+                                }
+                                //DISTRIBUTION OF CARDS
+                                else if(event instanceof events.CardsDealt){
                                         let cards = event._cards;
                                         let first = true;
                                         for(let card of cards){
-                                            if(card._suit === 1){
-                                                renderHandCard(this, card._face, "spades", first);
-                                            }
-                                            else if(card._suit === 2){
-                                                renderHandCard(this, card._face, "clubs", first);
-                                            }
-                                            else if(card._suit === 3){
-                                                renderHandCard(this, card._face, "diamonds", first);
-                                            }
-                                            else if(card._suit === 4){
-                                                renderHandCard(this, card._face, "hearts", first);
-                                            }
+                                            renderHandCard(this, card._face, translateSuit(card._suit), first);
                                             first = false;
                                         }
                                 }
+                                //FOLDING
+                                else if(event instanceof events.FoldDone){
+                                    fold(event._player);
+                                }
+                                //FLOP, TURN, RIVER PHASES
                                 else if(event instanceof events.PhaseStarted){
                                     let phase = event._phaseName;
-                                    alert(phase);
+                                    //Questo in futuro potrebbe essere nella console di log
+                                    document.getElementById("phase_name").innerText = event._phaseName;
                                     if(phase === "Flop betting"){
                                         renderTable(phase, event._table, event._plate);
                                     }
@@ -147,6 +149,44 @@ $(document).ready(() => {
                                     else if(phase === "River betting"){
                                         renderTable(phase, event._table, event._plate);
                                     }
+                                    else if(phase === "Blind placements"){
+                                        placeBlinds(event._plate);
+                                    }
+                                    else if(phase === "Dealing cards"){
+                                        //Already handled in a cardsDealt?
+                                    }
+                                    else if(phase === "Pre flop betting"){
+                                        //Already handled in an updateBet?
+                                    }
+                                    else if(phase === "Showdown"){
+                                        //Already handled in a showdown event?
+                                    }
+                                }
+                                //CHECKDONE
+                                else if(event instanceof events.CheckDone){
+                                    alert("PLAYER "+event._player+" CHECKS");
+                                }
+                                //CALLDONE
+                                else if(event instanceof events.CallDone){
+                                    alert("PLAYER "+event._player+" CALLS ("+event._betAmount+")");
+                                    updateBet(event._player, event._betAmount);
+                                }
+                                //BETDONE
+                                else if(event instanceof events.BetDone){
+                                    updateBet(event._player, event._betAmount);
+                                }
+                                //INSUFFICIENT FUNDS TO BET
+                                else if(event instanceof events.InsufficientFundsToBet){
+                                    alert("You cannot bet:\nYOUR MONEY: "+event._money+"\nMONEY NEEDED: "+event._moneyNeeded);
+                                }
+                                //SHOWDOWN RESULTS
+                                else if(event instanceof events.ShowDownResults){
+                                    //Mostrare le carte di tutti i giocatori?
+                                    showDownResults(event);
+                                }
+                                //PLAYER WON ROUND
+                                else if(event instanceof events.PlayerWonRound){
+                                    playerWonRound(event);
                                 }
                                 //TODO use the object event (see the various subclasses of PokerEvent)
                                 //TODO to update the client web interface
@@ -205,39 +245,100 @@ $(document).ready(() => {
                 }
             }
 
+            function clearTable(players) {
+                document.getElementById("phase_name").innerText = "";
+                let cards_board = document.getElementById("cards_board");
+                let flop = document.getElementById("flop");
+                let turn = document.getElementById("turn");
+                let river = document.getElementById("river");
+                if(flop != null){
+                    cards_board.removeChild(flop);
+                }
+                if(turn != null){
+                    cards_board.removeChild(turn);
+                }
+                if(river != null){
+                    cards_board.removeChild(river);
+                }
 
+                for(let i=1; i<=players.length; ++i){
+                    let playerBoard = document.getElementById("player_board" + i);
+                    let childrenNodes = playerBoard.childNodes;
+                    for(let c of childrenNodes){
+                        if(c.id === "card1" || c.id === "card2" || c.id === "card_back1" || c.id === "card_back2"){
+                            c.parentNode.removeChild(c);
+                        }
+                    }
 
-
-
-            var cards = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-            var suits = ["diamonds", "hearts", "spades", "clubs"];
-            var deck = new Array();
-
-            function getDeck() {
-                var deck = new Array();
-                for (var i = 0; i < suits.length; i++) {
-                    for (var x = 0; x < cards.length; x++) {
-                        var card = {Value: cards[x], Suit: suits[i]};
-                        deck.push(card);
+                    let playerName = document.getElementById("player_name" + i);
+                    for(let p of players) {
+                        if (playerName.innerText.includes(p)) {
+                            playerName.innerText = p;
+                            playerName.style.fontWeight = "normal";
+                            playerName.style.color = "white";
+                        }
                     }
                 }
-                //Posso usare gli script nella require per generare il deck
-                //E per fare lo shuffle
-                return deck;
-
             }
 
-            function shuffle() {
-                // for 1000 turns
-                // switch the values of two random cards
-                for (var i = 0; i < 1000; i++) {
-                    var location1 = Math.floor((Math.random() * deck.length));
-                    var location2 = Math.floor((Math.random() * deck.length));
-                    var tmp = deck[location1];
-                    deck[location1] = deck[location2];
-                    deck[location2] = tmp;
+            function playerWonRound(event) {
+                alert("PLAYER "+event._player+" WON "+event._howMuch+" THIS ROUND!");
+                for(let i=1; i<4; ++i){
+                    let playerName = document.getElementById("player_name" + i);
+                    if(playerName.innerText === event._player){
+                        let currentMoney = document.getElementById("player_money" + i).innerText;
+                        let newMoney = parseInt(currentMoney) + parseInt(event._howMuch);
+                        document.getElementById("player_money" + i).innerText = newMoney.toString();
+                    }
                 }
-                renderDeck();
+                document.getElementById("plate").innerText = "0";
+            }
+
+            function showDownResults(ranking) {
+                alert(ranking.toString());
+            }
+
+            function placeBlinds(plate) {
+                let currentPlate = document.getElementById("plate").innerText;
+                let newPlate = parseInt(currentPlate)+parseInt(plate);
+                document.getElementById("plate").innerText = newPlate;
+            }
+
+            //FIXTHIS
+            function updateBet(player, betAmount) {
+                for(let i=1; i<4; ++i){
+                    let playerName = document.getElementById("player_name" + i);
+                    if(playerName.innerText.includes(player)){
+                        let currentMoney = document.getElementById("player_money" + i).innerText;
+                        let newMoney = parseInt(currentMoney) - parseInt(betAmount);
+                        document.getElementById("player_money" + i).innerText = newMoney.toString();
+                    }
+                }
+                let currentPlate = document.getElementById("plate").innerText;
+                let newPlate = parseInt(currentPlate) + parseInt(betAmount);
+                document.getElementById("plate").innerText = newPlate;
+            }
+
+            function translateFaceValue(value) {
+                if(value === 1) {
+                    return "A";
+                }
+                else if(value === 11) {
+                    return "J";
+                }
+                else if(value === 12) {
+                    return "Q";
+                }
+                else if(value === 13) {
+                    return "K";
+                }
+                else
+                    return value;
+            }
+
+            function translateSuit(suit) {
+                let suits = ["spades", "clubs", "diamonds", "hearts"];
+                return suits[suit-1];
             }
 
             function renderTable(phase, cards, plate) {
@@ -251,24 +352,28 @@ $(document).ready(() => {
                 let c;
                 if(phase === "Flop betting"){
                     c = cards[0];
-                    card.style.left = "200px";
+                    card.style.right = "230px";
+                    card.id = "flop";
                 }
                 if(phase === "Turn betting"){
                     c = cards[1];
-                    card.style.left = "350px";
+                    card.style.right = "380px";
+                    card.id = "turn";
                 }
                 if(phase === "River betting"){
                     c = cards[2];
-                    card.style.left = "500px";
+                    card.style.right = "530px";
+                    card.id = "river";
                 }
 
-                card.style.bottom = "30px";
-                suit.className = "suit " + c._suit;
-                value.innerHTML = c._face;
+                card.style.bottom = "20px";
+                suit.className = "suit " + translateSuit(c._suit);
+
+                value.innerHTML = translateFaceValue(c._face);
                 card.appendChild(value);
                 card.appendChild(suit);
                 table.appendChild(card);
-                document.getElementById("plate").innerText = plate;
+                //document.getElementById("plate").innerText = plate;
             }
 
             function renderHandCard(player, number, suitVal, first) {
@@ -282,12 +387,14 @@ $(document).ready(() => {
                         card.className = "card";
                         value.className = "value";
                         suit.className = "suit " + suitVal;
-                        value.innerHTML = number;
+                        value.innerHTML = translateFaceValue(number);
                         if(first){
                             card.style.left = "50px";
+                            card.id = "card1"
                         }
                         else{
                             card.style.right = "50px";
+                            card.id = "card2"
                         }
                         card.appendChild(value);
                         card.appendChild(suit);
@@ -297,6 +404,12 @@ $(document).ready(() => {
                         let opponentBoard = document.getElementById("player_board" + i);
                         let card_back = document.createElement("img");
                         card_back.className = "card_back";
+                        if(first){
+                            card_back.id = "card_back1";
+                        }
+                        else{
+                            card_back.id = "card_back2";
+                        }
                         card_back.src = "img/card_back.png";
                         if(first){
                             card_back.style.left = "50px";
@@ -305,6 +418,25 @@ $(document).ready(() => {
                             card_back.style.right = "50px";
                         }
                         opponentBoard.appendChild(card_back);
+                    }
+                }
+            }
+
+            function fold(player) {
+                for (let i = 1; i < 4; ++i) {
+                    let playerName = document.getElementById("player_name" + i);
+                    let playerBoard = document.getElementById("player_board" + i);
+                    if (playerName.innerText.includes(player)) {
+                        let childrenNodes = playerBoard.childNodes;
+                        for(let c of childrenNodes){
+                            if(c.id === "card1" || c.id === "card2" || c.id === "card_back1" || c.id === "card_back2"){
+                                c.parentNode.removeChild(c);
+                            }
+                        }
+                        let playerName = document.getElementById("player_name" + i);
+                        playerName.innerText += " (FOLDED)";
+                        playerName.style.fontWeight = "bold";
+                        playerName.style.color = "#ff0000";
                     }
                 }
             }
@@ -319,6 +451,7 @@ $(document).ready(() => {
 
             function displayBoard() {
                 document.getElementById("cards_board").style.display = "block";
+                document.getElementById("plate").innerText = "0";
                 document.getElementById("game_title").style.textAlign = "left";
                 document.getElementById("logArea").style.display = "block";
             }

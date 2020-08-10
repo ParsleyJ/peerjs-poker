@@ -42,6 +42,7 @@ body{
     color: darkgreen;
     font-family: Arial;
     font-size: 1em;
+    overscroll-behavior: auto;
 }
 
 .container{
@@ -167,6 +168,16 @@ input[type=submit] {
     }
 }
 
+.phase_name{
+    color: white;
+    font-family: Arial;
+    font-weight: normal;
+    text-align: center;
+    font-size: 1em;
+    float: left;
+    padding: 10px;
+}
+
 .plate{
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
@@ -181,10 +192,11 @@ input[type=submit] {
 .deck_image{
     border: none;
     background: none;
-    height: 200px;
-    width: 200px;
-    margin-left: 5px;
-    margin-top: 5px;
+    height: 180px;
+    width: 180px;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
 }
 
 .cards_board{
