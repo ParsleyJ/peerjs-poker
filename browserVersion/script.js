@@ -116,6 +116,8 @@ $(document).ready(() => {
                         switch (message.messageType) {
                             case "event": {
                                 let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
+                                //ROUND ABOUT TO START
+
                                 //ROUND STARTED
                                 if(event instanceof events.RoundStarted){
                                     if(event._roundID > 0){
@@ -266,7 +268,7 @@ $(document).ready(() => {
                     let childrenNodes = playerBoard.childNodes;
                     for(let c of childrenNodes){
                         if(c.id === "card1" || c.id === "card2" || c.id === "card_back1" || c.id === "card_back2"){
-                            c.parentNode.removeChild(c);
+                            playerBoard.removeChild(c);
                         }
                     }
 
@@ -311,6 +313,9 @@ $(document).ready(() => {
                     if(playerName.innerText.includes(player)){
                         let currentMoney = document.getElementById("player_money" + i).innerText;
                         let newMoney = parseInt(currentMoney) - parseInt(betAmount);
+                        if(newMoney<0){
+                            newMoney = 0;
+                        }
                         document.getElementById("player_money" + i).innerText = newMoney.toString();
                     }
                 }
@@ -430,7 +435,7 @@ $(document).ready(() => {
                         let childrenNodes = playerBoard.childNodes;
                         for(let c of childrenNodes){
                             if(c.id === "card1" || c.id === "card2" || c.id === "card_back1" || c.id === "card_back2"){
-                                c.parentNode.removeChild(c);
+                                playerBoard.removeChild(c);
                             }
                         }
                         let playerName = document.getElementById("player_name" + i);
