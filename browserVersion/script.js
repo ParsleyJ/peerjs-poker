@@ -16,17 +16,89 @@ $(document).ready(() => {
 
             function prepareAndAwaitButtons(possibleMoves) {
                 return new Promise(resolve => {
-                    // in base a cosa c'è in possibleMoves
-                    // fai queste ops
+                    toggleButtons(possibleMoves, true);
                     $("#call_button").click(() => {
-                        // nascondi/disable buttons
+                        toggleButtons(possibleMoves, false);
                         resolve("call")
                     })
-
-
-                    // mostra/enable tutti i buttons rilevanti
-
+                    $("#check_button").click(() => {
+                        toggleButtons(possibleMoves, false);
+                        resolve("check")
+                    })
+                    $("#fold_button").click(() => {
+                        toggleButtons(possibleMoves, false);
+                        resolve("fold")
+                    })
+                    $("#leave_button").click(() => {
+                        toggleButtons(possibleMoves, false);
+                        resolve("leave")
+                    })
+                    $("#bet_button").click(() => {
+                        let betAmount = document.getElementById("betAmountInput").value;
+                        toggleButtons(possibleMoves, false);
+                        resolve("bet "+ betAmount)
+                    })
                 })
+            }
+
+            function toggleButtons(possibleMoves, enable) {
+                for(let m of possibleMoves){
+                    if(m === "bet"){
+                        let button = document.getElementById("bet_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                    else if(m === "raise"){
+                        //nothing here
+                    }
+                    else if(m === "call"){
+                        let button = document.getElementById("call_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                    else if(m === "check"){
+                        let button = document.getElementById("check_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                    else if(m === "fold"){
+                        let button = document.getElementById("fold_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                    else if(m === "leave"){
+                        let button = document.getElementById("leave_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                }
+                let betAmount = document.getElementById("betAmountInput");
+                if(enable){
+                    betAmount.disabled = false;
+                }
+                else{
+                    betAmount.disabled = true;
+                }
             }
 
 
@@ -246,8 +318,9 @@ $(document).ready(() => {
 
                     let input = null;
                     while(input === null||input===undefined) {
-                        input = await prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
-                        // input = await prepareAndAwaitButtons(decisionInput._possibleMoves);
+                        //input = await prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
+                        document.getElementById("betAmountInput").placeholder = "MIN BET = "+decisionInput._minBet;
+                        input = await prepareAndAwaitButtons(decisionInput._possibleMoves);
                     }
                     this.sendData({messageType: "decision", decision: input});
                 }
@@ -474,7 +547,8 @@ $(document).ready(() => {
             function displayBoard() {
                 document.getElementById("cards_board").style.display = "block";
                 document.getElementById("plate").innerText = "0";
-                document.getElementById("game_title").style.textAlign = "left";
+                document.getElementById("game_title").style.display = "none";
+                document.getElementById("button_container").style.display = "block";
                 document.getElementById("logArea").style.display = "block";
             }
 
