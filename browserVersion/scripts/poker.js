@@ -699,7 +699,7 @@ define((require) => {
                         let toAdded = decision.howMuch - previousPlayerBet;
                         if (decision.howMuch < this.maxBet || toAdded > pl.player.budget) {
                             puts("Invalid bet! The player attempted to bet " + decision.howMuch +
-                            " but it had to bet at least " + this.maxBet);
+                                " but it had to bet at least " + this.maxBet);
                             puts("Reasking player.");
                             invalidDecision = true;
                             break;
@@ -721,13 +721,18 @@ define((require) => {
                         let toBeAdded = this.maxBet - previousPlayerBet;
                         this.putBet(pl, this.maxBet);
 
-                        this.round.putOnPlate(pl.removeMoney(toBeAdded));
-                        puts("    --> " + pl + "");
-                        puts("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
-                        puts("bets: " + prettyStringMap(this.collectedBets));
-                        this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet));
-                        aPlayerDidBetOrCall = true;
-                        this.setPlayerSpeakFlag(pl);
+                        if (pl.player.budget < toBeAdded) {
+                            puts("" + pl + " tried to call, but does not have enough money to do so!");
+                            invalidDecision = true;
+                        } else {
+                            this.round.putOnPlate(pl.removeMoney(toBeAdded));
+                            puts("    --> " + pl + "");
+                            puts("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
+                            puts("bets: " + prettyStringMap(this.collectedBets));
+                            this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet));
+                            aPlayerDidBetOrCall = true;
+                            this.setPlayerSpeakFlag(pl);
+                        }
                     }
                         break;
 
@@ -736,13 +741,13 @@ define((require) => {
                         //do nothing
                     }
                         break;
-                    default:{
+                    default: {
                         invalidDecision = true;
                     }
 
                 }
                 puts();
-                if(!invalidDecision) {
+                if (!invalidDecision) {
                     playerTurnCounter++;
                 }
             }
@@ -1187,7 +1192,7 @@ define((require) => {
         }
 
         async waitForEnoughPlayers() {
-            if(this.playerInterfaces.length < this._minPlayersInGame){
+            if (this.playerInterfaces.length < this._minPlayersInGame) {
                 this.broadCastEvent(new events.AwaitingForPlayers());
                 puts("Waiting for enough players to join...");
             }
@@ -1201,7 +1206,7 @@ define((require) => {
             // noinspection InfiniteLoopJS
             while (true) {
                 do {
-                    if(this.playerInterfaces.length < this._maxPlayersInGame){
+                    if (this.playerInterfaces.length < this._maxPlayersInGame) {
                         this.syphonPlayersFromQueue();
                     }
                     await this.waitForEnoughPlayers();
