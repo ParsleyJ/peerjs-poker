@@ -114,7 +114,7 @@ define((require) => {
         _possibleMoves;
         _minBet;
         _myPreviousBet;
-        _collectedBets;
+        _collectedBets; // array of {player:string, budget:int, bet:int (if -1 ==> folded)}
 
 
         constructor(cardsInTable, cardsInHand, possibleMoves, minBet, myPreviousBet, collectedBets) {
@@ -125,12 +125,6 @@ define((require) => {
             this._myPreviousBet = myPreviousBet;
             this._collectedBets = collectedBets;
         }
-
-// constructor(cardsInHand, cardsInTable, possibleMoves) {
-        //     this._cardsInHand = cardsInHand;
-        //     this._cardsInTable = cardsInTable;
-        //     this._possibleMoves = possibleMoves;
-        // }
 
 
         get cardsInHand() {

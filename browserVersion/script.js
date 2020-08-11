@@ -14,6 +14,22 @@ $(document).ready(() => {
 
             }
 
+            function prepareAndAwaitButtons(possibleMoves) {
+                return new Promise(resolve => {
+                    // in base a cosa c'è in possibleMoves
+                    // fai queste ops
+                    $("#call_button").click(() => {
+                        // nascondi/disable buttons
+                        resolve("call")
+                    })
+
+
+                    // mostra/enable tutti i buttons rilevanti
+
+                })
+            }
+
+
             class PlayerClient {
                 _peer;
                 _connection;
@@ -231,6 +247,7 @@ $(document).ready(() => {
                     let input = null;
                     while(input === null||input===undefined) {
                         input = await prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
+                        // input = await prepareAndAwaitButtons(decisionInput._possibleMoves);
                     }
                     this.sendData({messageType: "decision", decision: input});
                 }
