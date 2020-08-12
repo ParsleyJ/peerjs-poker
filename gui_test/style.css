@@ -440,7 +440,7 @@ input[type=submit] {
     width: 49%;
     margin-bottom: 10px;
     display: none;
-    float:right;
+    float: right;
 }
 
 .player_name4{
@@ -473,30 +473,6 @@ input[type=submit] {
     padding: 10px;
 }
 
-/*.deck
-{
-    //width:50%;
-    margin: 20px auto;
-    background:forestgreen;
-    border:solid 3px black;
-    padding: 10px;
-    border-radius:10px;
-    text-align: center;
-    color:white;
-}*/
-
-/*.deckCover
-{
-    padding: 10px;
-    border: solid 1px #808080;
-    background-image: url('img/deck_cover.png');
-    display: inline-block;
-    border-radius: 10px;
-    color:black;
-    margin: 3px;
-    position: center;
-}*/
-
 .card
 {
     padding: 10px;
@@ -508,15 +484,6 @@ input[type=submit] {
     text-align: center;
     color:black;
     margin: 3px;
-}
-
-.btn
-{
-    background:white;
-    padding: 10px 20px;
-    border-radius:30px;
-    margin: 10px;
-    display:inline-block;
 }
 
 .card .value{

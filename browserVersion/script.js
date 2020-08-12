@@ -243,7 +243,7 @@ $(document).ready(() => {
                                         renderTable(phase, event._table, event._plate);
                                     }
                                     else if(phase === "Blind placements"){
-                                        placeBlinds(event._plate);
+                                        await placeBlinds(event._plate);
                                     }
                                     else if(phase === "Dealing cards"){
                                         //Already handled in a cardsDealt?
@@ -377,18 +377,16 @@ $(document).ready(() => {
                 alert("YOU LEFT THE GAME!");
             }
 
-            function playerJoined(player) {
-                if(player != window.pl._playerName){
-                    for (let i = 1; i < 4; ++i) {
+            function playerJoined(playerNickname) {
+                if(playerNickname !== window.pl._playerName){
+                    for (let i = 1; i <= 4; ++i) {
                         let playerName = document.getElementById("player_name" + i);
+                        let playerMoney = document.getElementById("player_money" + i);
                         if (playerName.innerText === "") {
                             document.getElementById("player_board" + i).style.display = "block";
-                            document.getElementById("player_name" + i).style.display = "block";
-                            document.getElementById("player_money" + i).style.display = "block";
-                            document.getElementById("chips" + i).style.display = "block";
-                            document.getElementById("player_name" + i).innerHTML = player;
+                            playerName.innerText = playerNickname;
+                            playerMoney.innerText = "0";
                             //TODO : quando un player joina la partita, dovrei ricevere anche i suoi soldi iniziali
-                            document.getElementById("player_money" + i).innerHTML = "0";
                             break;
                         }
                     }
@@ -396,7 +394,7 @@ $(document).ready(() => {
             }
 
             function playerLeft(player) {
-                for (let i = 1; i < 4; ++i) {
+                for (let i = 1; i <= 4; ++i) {
                     let playerName = document.getElementById("player_name" + i);
                     if (playerName.innerText === player) {
                         let card1 = document.getElementById("card1_" + i);
@@ -405,8 +403,6 @@ $(document).ready(() => {
                         card2.parentNode.removeChild(card2);
                         document.getElementById("player_name" + i).innerText = "";
                         document.getElementById("player_money" + i).innerText = "";
-                        document.getElementById("player_name" + i).style.display = "none";
-                        document.getElementById("player_money" + i).style.display = "none";
                     }
                 }
             }
@@ -416,7 +412,7 @@ $(document).ready(() => {
                 let status = await window.pl.gameStatus();
                 let players = status.players;
                 for (let i = 0; i < players.length; ++i) {
-                    for (let j = 1; j < 4; ++j) {
+                    for (let j = 1; j <= 4; ++j) {
                         let playerName = document.getElementById("player_name" + j);
                         if (playerName.innerText.includes(players[i].name)) {
                             document.getElementById("player_money" + j).innerText = players[i].money;
@@ -464,7 +460,7 @@ $(document).ready(() => {
 
             function playerWonRound(event) {
                 alert("PLAYER "+event._player+" WON "+event._howMuch+" THIS ROUND!");
-                for(let i=1; i<4; ++i){
+                for(let i=1; i <= 4; ++i){
                     let playerName = document.getElementById("player_name" + i);
                     if(playerName.innerText === event._player){
                         let currentMoney = document.getElementById("player_money" + i).innerText;
@@ -487,7 +483,7 @@ $(document).ready(() => {
                 if(betAmount === "") {
                     betAmount = "0";
                 }
-                for(let i=1; i<4; ++i){
+                for(let i=1; i <= 4; ++i){
                     let playerName = document.getElementById("player_name" + i);
                     if(playerName.innerText.includes(player)){
                         let currentMoney = document.getElementById("player_money" + i).innerText;
@@ -561,7 +557,7 @@ $(document).ready(() => {
             }
 
             function renderHandCard(player, number, suitVal, first) {
-                for(let i=1; i<4; ++i){
+                for(let i=1; i <= 4; ++i){
                     let playerName = document.getElementById("player_name" + i);
                     if(playerName.innerText === player._playerName){
                         let rightBoard = document.getElementById("player_board" + i);
@@ -609,7 +605,7 @@ $(document).ready(() => {
             }
 
             function fold(player) {
-                for (let i = 1; i < 4; ++i) {
+                for (let i = 1; i <= 4; ++i) {
                     let playerName = document.getElementById("player_name" + i);
                     if (playerName.innerText.includes(player)) {
                         let card1 = document.getElementById("card1_" + i);
@@ -644,12 +640,9 @@ $(document).ready(() => {
                 let status = await window.pl.gameStatus();
                 let players = status.players;
                 for (let i = 1; i <= players.length; ++i) {
-                        document.getElementById("player_board" + i).style.display = "block";
-                        document.getElementById("player_name" + i).style.display = "block";
-                        document.getElementById("player_money" + i).style.display = "block";
-                        document.getElementById("chips" + i).style.display = "block";
-                        document.getElementById("player_name" + i).innerHTML = players[i-1].name;
-                        document.getElementById("player_money" + i).innerHTML = players[i-1].money;
+                    document.getElementById("player_board" + i).style.display = "block";
+                    document.getElementById("player_name" + i).innerHTML = players[i-1].name;
+                    document.getElementById("player_money" + i).innerHTML = players[i-1].money;
                 }
             }
 
