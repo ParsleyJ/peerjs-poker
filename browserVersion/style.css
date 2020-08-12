@@ -198,7 +198,7 @@ input[type=submit] {
     float:right;
     position: absolute;
     top: 10px;
-    right: 10px;
+    left: 110px;
 }
 
 .fold_button{
@@ -303,7 +303,9 @@ input[type=submit] {
     text-align: center;
     font-size: 1em;
     float: left;
-    padding: 10px;
+    position: absolute;
+    left: 5px;
+    top: 5px;
 }
 
 .plate{
