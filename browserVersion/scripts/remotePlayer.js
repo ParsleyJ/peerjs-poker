@@ -159,8 +159,11 @@ define(require => {
         }
 
         playerInterfaceDestroyed(){
-            this._peer.destroy();
+            if(!!this._connection && this._connection.open) {
+                this._connection.close();
+            }
             this._connection = null
+            this._peer.destroy();
         }
 
 
@@ -193,7 +196,7 @@ define(require => {
         async* extractRequests() {
             while (this.isConnectionAlive()) {
                 let request = await this._messageQueue.dequeue(clientRequestFilter);
-                if (request !== undefined) {
+                if (!!request) {
                     yield request;
                 }
             }

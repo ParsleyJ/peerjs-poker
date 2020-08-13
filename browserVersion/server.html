@@ -60,6 +60,13 @@
                     game.gameRoomLoop();
                 });
 
+                window.onunload = window.onbeforeunload = () => {
+                    game.playerInterfaces.forEach(pl => pl.playerInterfaceDestroyed())
+                    if(!!server._peer && !server._peer.destroyed) {
+                        server._peer.destroy()
+                    }
+                }
+
             }));
     </script>
     <title>Server</title>

@@ -126,7 +126,7 @@ $(document).ready(() => {
                     // this._peer = new Peer(clientID);
                 }
 
-                register(to, clbk) {
+                register(to, connectionOpenCallback, connectionClosedCallback=() => {}) {
                     puts("registering to " + to + " ...");
                     let registerConnection = this._peer.connect(to);
 
@@ -158,15 +158,16 @@ $(document).ready(() => {
                         });
 
                         this._connection.on("open", async () => {
-                            console.log(clbk);
-                            console.log(typeof (clbk));
-                            clbk();
+                            connectionOpenCallback();
                             for await (const message of this.extractMessages(
                                 m => m === undefined || m.messageType !== "response"
                             )) { // if the message is not a response to a request:
                                 // handle it with the common handler
                                 await this.handleMessage(message);
                             }
+                        })
+                        this._connection.on("close", () =>{
+                            connectionClosedCallback();
                         })
                     })
                 }

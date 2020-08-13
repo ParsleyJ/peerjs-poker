@@ -644,6 +644,7 @@ define((require) => {
                     puts("" + pl + " has unsufficient funds and can only fold, leave or all-in.");
                     pl.notifyEvent(new events.InsufficientFundsToBet(pl.player.budget, neededBet))
                         .then(() => console.log("notification sent to " + pl.player.name));
+
                     possibleMoves = ["fold", "leave", "allin"];
                 } else if (pl.player.budget === neededBet) {
                     // the player has just enough money to call
