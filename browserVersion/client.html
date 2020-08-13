@@ -146,8 +146,6 @@
                                 switch (message.messageType) {
                                     case "event": {
                                         let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
-                                        //TODO use the object event (see the various subclasses of PokerEvent)
-                                        //TODO to update the client web interface
                                         puts("Notification: " + event);
                                     }
                                         break;
@@ -160,9 +158,6 @@
                             }
                         }
 
-
-                        //TODO change this method to handle the decision of the user on betting
-                        //TODO      see poker.js (DecisionProcessInput, Decision & subclasses)
                         async handleDecisionRequest(decisionInput) {
                             let formattedMoves = decisionInput._possibleMoves.map(m => {
                                 switch (m) {

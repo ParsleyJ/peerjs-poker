@@ -1,7 +1,7 @@
 define(require => {
     const poker = require('./poker');
     const events = require('./pokerEvents');
-    const {timeoutPromise} = require('./util.js');
+    const {MessageQueue} = require('./util.js');
 
 
     /**
@@ -16,73 +16,6 @@ define(require => {
      */
     const clientRequestFilter = m => m.messageType === "request";
 
-    /**
-     * A message queue with promise-returning dequeue;
-     *   when dequeueing, it resolves the promises right away,
-     *   if there is a message in the queue matching the predicate;
-     *   otherwise, it stores a listener which will resolve the promise
-     *   as soon a message matching the predicate arrives.
-     * Think of this as the JS ES6 version of Java's ArrayBlockingQueue,
-     *   even if this implementation does not offer blocking mechanism on
-     *   enqueueing and there is no (declared) limit on buffer.
-     * @param predicate the message predicate (defaults to () => true)
-     * @returns {Promise<Message>}
-     */
-    class MessageQueue {
-        _queue = [];
-        _listeners = [];
-
-        enqueue(message) {
-            this.printQueues("enquque:start");
-            let matched = null;
-            for (let i = 0; i < this._listeners.length; i++) {
-                let e = this._listeners[i];
-                if (e[0](message)) {
-                    matched = i;
-                    break;
-                }
-            }
-
-            if (matched !== null && matched !== undefined) {
-                let callback = this._listeners[matched][1];
-                this._listeners.splice(matched, 1);
-                this.printQueues("enqueue:gaveToAwaitingListener");
-                callback(message);
-                return;
-            }
-            this.printQueues("enqueue:enqueued")
-            this._queue.push(message);
-        }
-
-        printQueues(premessage) {
-            console.log(premessage);
-            console.log("queueSize     :" + this._queue.length);
-            console.log(this._queue);
-            console.log("listenersSize :" + this._listeners.length);
-            console.log(this._listeners);
-        }
-
-        dequeue(predicate = () => true) {
-            this.printQueues("dequeue:start");
-            let foundIndex = this._queue.findIndex(predicate);
-            if (foundIndex === -1) {
-                return new Promise(resolve => {
-                    this._listeners.push([predicate, message => {
-                        resolve(message);
-
-                    }]);
-                    this.printQueues("dequeue:promisedLate");
-                });
-            } else {
-                return new Promise(resolve => {
-                    this._queue.splice(foundIndex, 1);
-                    this.printQueues("dequeue:returned");
-                    resolve(this._queue[foundIndex]);
-                });
-            }
-
-        }
-    }
 
 
     /**
@@ -135,7 +68,7 @@ define(require => {
                     console.log("connection between player interface and remote client opened.")
                     resolve();
                     for await (const request of this.extractRequests()) {
-                        if (request !== undefined) {
+                        if (request !== undefined && request !== null) {
                             this.handleRequest(request);
                         }
                     }
@@ -192,20 +125,12 @@ define(require => {
                             //if the connection is still alive, we await for a decision
                             // message on queue, with a timeout.
                             try{
-                                decisionMessage = await timeoutPromise(
-                                    15_000,
-                                    this._messageQueue.dequeue(decisionFilter),
-                                );
-                                console.log(decisionMessage);
+                                decisionMessage = await this._messageQueue.timeOutDequeue(15_000, decisionFilter)
+                                console.log(decisionMessage)
                             }catch(e){
                                 //something went wrong (probably timeout): we log the error,
                                 // and decisionMessage is left undefined (so we reloop on while).
-                                console.log(e);
-                                // we also remove the listener for the decision, since the dequeue failed.
-                                let foundIndex = this._messageQueue._listeners.find(e => e[0] === decisionFilter);
-                                if (foundIndex !== -1) {
-                                    this._messageQueue._listeners.splice(foundIndex, 1);
-                                }
+                                console.log(e)
                             }
 
                         }else{
