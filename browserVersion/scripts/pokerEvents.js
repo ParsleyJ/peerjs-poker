@@ -15,6 +15,8 @@ define((require) => {
                     return new PlayerDisqualified(object._player, object._reason);
                 case "PlayerWonRound":
                     return new PlayerWonRound(object._player, object._howMuch);
+                case "BlindsPlaced":
+                    return new BlindsPlaced(object._blindPlayer, object._smallBlindPlayer);
                 case "PhaseStarted":
                     return new PhaseStarted(object._phaseName, object._plate,
                         object._table.map( c => Card.fromObj(c)));
@@ -87,6 +89,41 @@ define((require) => {
 
         toString() {
             return "(event: " + this.player + " just won " + this.howMuch + ")";
+        }
+    }
+
+    class BlindsPlaced extends PokerEvent{
+        _blindPlayer;
+        _smallBlindPlayer;
+
+
+        /**
+         *
+         * @param {string} blindPlayer
+         * @param {string }smallBlindPlayer
+         */
+        constructor(blindPlayer, smallBlindPlayer) {
+            super();
+            this._blindPlayer = blindPlayer;
+            this._smallBlindPlayer = smallBlindPlayer;
+        }
+
+        getEventType() {
+            return "BlindsPlaced"
+        }
+
+
+        get blindPlayer() {
+            return this._blindPlayer;
+        }
+
+        get smallBlindPlayer() {
+            return this._smallBlindPlayer;
+        }
+
+        toString(){
+            return "(event: blinds placed {blind: " + this._blindPlayer +
+                "; small blind: " + this._smallBlindPlayer + "}";
         }
     }
 
@@ -331,7 +368,8 @@ define((require) => {
         }
 
         toString() {
-            return "(event: " + this.player + " chose to bet (or to increase its previous bet to) " + this.betAmount + ")";
+            return "(event: " + this.player + " chose to bet (or to increase its previous bet to) "
+                + this.betAmount + ")";
         }
     }
 
@@ -544,6 +582,7 @@ define((require) => {
         PokerEvent,
         PlayerDisqualified,
         PlayerWonRound,
+        BlindsPlaced,
         PhaseStarted,
         RoundStarted,
         CardsDealt,

@@ -459,6 +459,9 @@ define((require) => {
                 }
                 this.round.putOnPlate(blinderPlayer.removeMoney(this.game.rules.blind));
                 this.round.putOnPlate(smallBlinderPlayer.removeMoney(this.game.rules.smallBlind));
+                this.game.broadCastEvent(
+                    new events.BlindsPlaced(blinderPlayer.player.name, smallBlinderPlayer.player.name)
+                );
                 this.round.requiredBetForCall = this.game.rules.blind;
                 break; // got here, no need to restart
             }
