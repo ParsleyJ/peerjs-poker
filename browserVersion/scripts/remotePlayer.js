@@ -275,6 +275,7 @@ define(require => {
                 switch (request.requestName) {
                     case "budget": {
                         this.respond(request, {budget: this.player.budget})
+                        break;
                     }
 
                     case "gameStatus":{
