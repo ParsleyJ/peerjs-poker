@@ -16,17 +16,90 @@ $(document).ready(() => {
 
             function prepareAndAwaitButtons(possibleMoves) {
                 return new Promise(resolve => {
-                    // in base a cosa c'è in possibleMoves
-                    // fai queste ops
+                    toggleButtons(possibleMoves, true);
                     $("#call_button").click(() => {
-                        // nascondi/disable buttons
+                        toggleButtons(possibleMoves, false);
                         resolve("call")
                     })
-
-
-                    // mostra/enable tutti i buttons rilevanti
-
+                    $("#check_button").click(() => {
+                        toggleButtons(possibleMoves, false);
+                        resolve("check")
+                    })
+                    $("#fold_button").click(() => {
+                        toggleButtons(possibleMoves, false);
+                        resolve("fold")
+                    })
+                    $("#leave_button").click(() => {
+                        toggleButtons(possibleMoves, false);
+                        leave();
+                        resolve("leave")
+                    })
+                    $("#bet_button").click(() => {
+                        let betAmount = document.getElementById("betAmountInput").value;
+                        toggleButtons(possibleMoves, false);
+                        resolve("bet "+ betAmount)
+                    })
                 })
+            }
+
+            function toggleButtons(possibleMoves, enable) {
+                for(let m of possibleMoves){
+                    if(m === "bet"){
+                        let button = document.getElementById("bet_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                    else if(m === "raise"){
+                        //nothing here
+                    }
+                    else if(m === "call"){
+                        let button = document.getElementById("call_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                    else if(m === "check"){
+                        let button = document.getElementById("check_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                    else if(m === "fold"){
+                        let button = document.getElementById("fold_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                    else if(m === "leave"){
+                        let button = document.getElementById("leave_button");
+                        if(enable){
+                            button.disabled = false;
+                        }
+                        else{
+                            button.disabled = true;
+                        }
+                    }
+                }
+                let betAmount = document.getElementById("betAmountInput");
+                if(enable){
+                    betAmount.disabled = false;
+                }
+                else{
+                    betAmount.disabled = true;
+                }
             }
 
 
@@ -133,7 +206,9 @@ $(document).ready(() => {
                             case "event": {
                                 let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
                                 //ROUND ABOUT TO START
-
+                                if(event instanceof events.RoundAboutToStart){
+                                    //Nothing
+                                }
                                 //ROUND STARTED
                                 if(event instanceof events.RoundStarted){
                                     if(event._roundID > 0){
@@ -168,7 +243,7 @@ $(document).ready(() => {
                                         renderTable(phase, event._table, event._plate);
                                     }
                                     else if(phase === "Blind placements"){
-                                        placeBlinds(event._plate);
+                                        await placeBlinds(event._plate);
                                     }
                                     else if(phase === "Dealing cards"){
                                         //Already handled in a cardsDealt?
@@ -177,7 +252,7 @@ $(document).ready(() => {
                                         //Already handled in an updateBet?
                                     }
                                     else if(phase === "Showdown"){
-                                        //Already handled in a showdown event?
+                                        showDown();
                                     }
                                 }
                                 //CHECKDONE
@@ -206,8 +281,24 @@ $(document).ready(() => {
                                 else if(event instanceof events.PlayerWonRound){
                                     playerWonRound(event);
                                 }
-                                //TODO use the object event (see the various subclasses of PokerEvent)
-                                //TODO to update the client web interface
+                                //PLAYER LEFT
+                                else if(event instanceof events.PlayerLeft){
+                                    playerLeft(event._player);
+                                }
+                                //PLAYER JOINED ROUND
+                                else if(event instanceof events.PlayerJoinedRound){
+                                    playerJoined(event._player);
+                                }
+                                //AWAITING FOR PLAYERS
+                                else if(event instanceof events.AwaitingForPlayers){
+                                    let status = await window.pl.gameStatus();
+                                    let players = status.players;
+                                    let playerNames = new Array();
+                                    for(let i=0; i<players.length; ++i){
+                                        playerNames.push(players[i].name);
+                                    }
+                                    clearTable(playerNames);
+                                }
                                 puts("" + event);
                             }
                                 break;
@@ -220,9 +311,6 @@ $(document).ready(() => {
                     }
                 }
 
-
-                //TODO change this method to handle the decision of the user on betting
-                //TODO      see poker.js (DecisionProcessInput, Decision & subclasses)
                 async handleDecisionRequest(decisionInput) {
                     let formattedMoves = decisionInput._possibleMoves.map(m => {
                         switch (m) {
@@ -246,8 +334,9 @@ $(document).ready(() => {
 
                     let input = null;
                     while(input === null||input===undefined) {
-                        input = await prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
-                        // input = await prepareAndAwaitButtons(decisionInput._possibleMoves);
+                        //input = await prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
+                        document.getElementById("betAmountInput").value = parseInt(decisionInput._minBet);
+                        input = await prepareAndAwaitButtons(decisionInput._possibleMoves);
                     }
                     this.sendData({messageType: "decision", decision: input});
                 }
@@ -262,6 +351,77 @@ $(document).ready(() => {
                     //     }]
                     // }
                 }
+            }
+
+            async function leave() {
+                /*TODO: se il player rientra con lo stesso nome, non rifà il login e non gli carica la board. Il server
+                non riceve nemmeno il suo nuovo accesso */
+                let status = await window.pl.gameStatus();
+                let players = status.players;
+                let playerNames = new Array();
+                for (let i = 0; i < players.length; ++i) {
+                    playerNames.push(players[i].name);
+                }
+                clearTable(playerNames);
+                document.getElementById("cards_board").style.display = "none";
+                document.getElementById("player_board1").style.display = "none";
+                document.getElementById("player_board2").style.display = "none";
+                document.getElementById("player_board2").style.display = "none";
+                document.getElementById("player_board3").style.display = "none";
+                document.getElementById("button_container").style.display = "none";
+                document.getElementById("logArea").style.display = "none";
+
+                document.getElementById("game_title").style.display = "block";
+                document.getElementById("startbtn").style.display = "block";
+                document.getElementById("container").style.display = "flex";
+                alert("YOU LEFT THE GAME!");
+            }
+
+            function playerJoined(playerNickname) {
+                if(playerNickname !== window.pl._playerName){
+                    for (let i = 1; i <= 4; ++i) {
+                        let playerName = document.getElementById("player_name" + i);
+                        let playerMoney = document.getElementById("player_money" + i);
+                        if (playerName.innerText === "") {
+                            document.getElementById("player_board" + i).style.display = "block";
+                            playerName.innerText = playerNickname;
+                            playerMoney.innerText = "0";
+                            //TODO : quando un player joina la partita, dovrei ricevere anche i suoi soldi iniziali
+                            break;
+                        }
+                    }
+                }
+            }
+
+            function playerLeft(player) {
+                for (let i = 1; i <= 4; ++i) {
+                    let playerName = document.getElementById("player_name" + i);
+                    if (playerName.innerText === player) {
+                        let card1 = document.getElementById("card1_" + i);
+                        let card2 = document.getElementById("card2_" + i);
+                        card1.parentNode.removeChild(card1);
+                        card2.parentNode.removeChild(card2);
+                        document.getElementById("player_name" + i).innerText = "";
+                        document.getElementById("player_money" + i).innerText = "";
+                    }
+                }
+            }
+
+            async function placeBlinds() {
+                //TODO : gestire diversamente (dall'evento) il blind placement?
+                let status = await window.pl.gameStatus();
+                let players = status.players;
+                for (let i = 0; i < players.length; ++i) {
+                    for (let j = 1; j <= 4; ++j) {
+                        let playerName = document.getElementById("player_name" + j);
+                        if (playerName.innerText.includes(players[i].name)) {
+                            document.getElementById("player_money" + j).innerText = players[i].money;
+                        }
+                    }
+                }
+                let currentPlate = document.getElementById("plate").innerText;
+                let newPlate = parseInt(currentPlate) + 150;
+                document.getElementById("plate").innerText = newPlate;
             }
 
             function clearTable(players) {
@@ -281,14 +441,12 @@ $(document).ready(() => {
                 }
 
                 for(let i=1; i<=players.length; ++i){
-                    let playerBoard = document.getElementById("player_board" + i);
-                    let childrenNodes = playerBoard.childNodes;
-                    for(let c of childrenNodes){
-                        if(c.id === "card1" || c.id === "card2" || c.id === "card_back1" || c.id === "card_back2"){
-                            playerBoard.removeChild(c);
-                        }
+                    let card1 = document.getElementById("card1_" + i);
+                    let card2 = document.getElementById("card2_" + i);
+                    if(card1 != null && card2 != null){
+                        card1.parentNode.removeChild(card1);
+                        card2.parentNode.removeChild(card2);
                     }
-
                     let playerName = document.getElementById("player_name" + i);
                     for(let p of players) {
                         if (playerName.innerText.includes(p)) {
@@ -302,7 +460,7 @@ $(document).ready(() => {
 
             function playerWonRound(event) {
                 alert("PLAYER "+event._player+" WON "+event._howMuch+" THIS ROUND!");
-                for(let i=1; i<4; ++i){
+                for(let i=1; i <= 4; ++i){
                     let playerName = document.getElementById("player_name" + i);
                     if(playerName.innerText === event._player){
                         let currentMoney = document.getElementById("player_money" + i).innerText;
@@ -313,19 +471,19 @@ $(document).ready(() => {
                 document.getElementById("plate").innerText = "0";
             }
 
+            function showDown() {
+                //TODO il server mi deve mandare le carte degli altri giocatori così le posso scoprire
+            }
+
             function showDownResults(ranking) {
                 alert(ranking.toString());
             }
 
-            function placeBlinds(plate) {
-                let currentPlate = document.getElementById("plate").innerText;
-                let newPlate = parseInt(currentPlate)+parseInt(plate);
-                document.getElementById("plate").innerText = newPlate;
-            }
-
-            //FIXTHIS
             function updateBet(player, betAmount) {
-                for(let i=1; i<4; ++i){
+                if(betAmount === "") {
+                    betAmount = "0";
+                }
+                for(let i=1; i <= 4; ++i){
                     let playerName = document.getElementById("player_name" + i);
                     if(playerName.innerText.includes(player)){
                         let currentMoney = document.getElementById("player_money" + i).innerText;
@@ -399,7 +557,7 @@ $(document).ready(() => {
             }
 
             function renderHandCard(player, number, suitVal, first) {
-                for(let i=1; i<4; ++i){
+                for(let i=1; i <= 4; ++i){
                     let playerName = document.getElementById("player_name" + i);
                     if(playerName.innerText === player._playerName){
                         let rightBoard = document.getElementById("player_board" + i);
@@ -412,49 +570,48 @@ $(document).ready(() => {
                         value.innerHTML = translateFaceValue(number);
                         if(first){
                             card.style.left = "50px";
-                            card.id = "card1"
+                            card.id = "card1_"+i;
                         }
                         else{
                             card.style.right = "50px";
-                            card.id = "card2"
+                            card.id = "card2_"+i;
                         }
                         card.appendChild(value);
                         card.appendChild(suit);
                         rightBoard.appendChild(card);
                     }
                     else{
-                        let opponentBoard = document.getElementById("player_board" + i);
-                        let card_back = document.createElement("img");
-                        card_back.className = "card_back";
-                        if(first){
-                            card_back.id = "card_back1";
+                        if(playerName.innerText.length > 0){
+                            let opponentBoard = document.getElementById("player_board" + i);
+                            let card_back = document.createElement("img");
+                            card_back.className = "card_back";
+                            if(first){
+                                card_back.id = "card1_"+i;
+                            }
+                            else{
+                                card_back.id = "card2_"+i;
+                            }
+                            card_back.src = "img/card_back.png";
+                            if(first){
+                                card_back.style.left = "50px";
+                            }
+                            else{
+                                card_back.style.right = "50px";
+                            }
+                            opponentBoard.appendChild(card_back);
                         }
-                        else{
-                            card_back.id = "card_back2";
-                        }
-                        card_back.src = "img/card_back.png";
-                        if(first){
-                            card_back.style.left = "50px";
-                        }
-                        else{
-                            card_back.style.right = "50px";
-                        }
-                        opponentBoard.appendChild(card_back);
                     }
                 }
             }
 
             function fold(player) {
-                for (let i = 1; i < 4; ++i) {
+                for (let i = 1; i <= 4; ++i) {
                     let playerName = document.getElementById("player_name" + i);
-                    let playerBoard = document.getElementById("player_board" + i);
                     if (playerName.innerText.includes(player)) {
-                        let childrenNodes = playerBoard.childNodes;
-                        for(let c of childrenNodes){
-                            if(c.id === "card1" || c.id === "card2" || c.id === "card_back1" || c.id === "card_back2"){
-                                playerBoard.removeChild(c);
-                            }
-                        }
+                        let card1 = document.getElementById("card1_" + i);
+                        let card2 = document.getElementById("card2_" + i);
+                        card1.parentNode.removeChild(card1);
+                        card2.parentNode.removeChild(card2);
                         let playerName = document.getElementById("player_name" + i);
                         playerName.innerText += " (FOLDED)";
                         playerName.style.fontWeight = "bold";
@@ -474,7 +631,8 @@ $(document).ready(() => {
             function displayBoard() {
                 document.getElementById("cards_board").style.display = "block";
                 document.getElementById("plate").innerText = "0";
-                document.getElementById("game_title").style.textAlign = "left";
+                document.getElementById("game_title").style.display = "none";
+                document.getElementById("button_container").style.display = "block";
                 document.getElementById("logArea").style.display = "block";
             }
 
@@ -482,13 +640,9 @@ $(document).ready(() => {
                 let status = await window.pl.gameStatus();
                 let players = status.players;
                 for (let i = 1; i <= players.length; ++i) {
-                        //Se ci sono già altri giocatori, mi servono le loro info dal server e su quali board (1-4) sono piazzati
-                        document.getElementById("player_board" + i).style.display = "block";
-                        document.getElementById("player_name" + i).style.display = "block";
-                        document.getElementById("player_money" + i).style.display = "block";
-                        document.getElementById("chips" + i).style.display = "block";
-                        document.getElementById("player_name" + i).innerHTML = players[i-1].name;
-                        document.getElementById("player_money" + i).innerHTML = players[i-1].money;
+                    document.getElementById("player_board" + i).style.display = "block";
+                    document.getElementById("player_name" + i).innerHTML = players[i-1].name;
+                    document.getElementById("player_money" + i).innerHTML = players[i-1].money;
                 }
             }
 
@@ -531,20 +685,11 @@ $(document).ready(() => {
                 startClient().then(()=>{
                     displayBoard();
                     placePlayerOnBoard().then(()=>{
-                        // checkForOtherPlayers();
+                        checkForOtherPlayers();
                     })
                 });
 
                 return false;
             }
-
-            /*function load()
-            {
-                deck = getDeck();
-                document.getElementById ("startbtn").style.display = "block";
-                //document.getElementById ("startbtn").addEventListener ("click", displayForm, false);
-            }
-
-            window.onload = load;*/
         })
 })

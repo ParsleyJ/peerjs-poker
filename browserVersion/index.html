@@ -10,6 +10,16 @@
 
 <body>
     <h1 id="game_title" class="game_title">Poker</h1>
+
+    <div class="button_container" id="button_container">
+        <button href="#" class="call_button" id="call_button"disabled>CALL</button>
+        <button href="#" class="check_button" id="check_button" disabled>CHECK</button>
+        <button href="#" class="bet_button" id="bet_button" disabled>BET</button>
+        <button href="#" class="fold_button" id="fold_button" disabled>FOLD</button>
+        <button href="#" class="leave_button" id="leave_button" disabled>LEAVE</button>
+        <input type="number" id="betAmountInput" name="betAmountInput" class="betAmountInput" disabled = "disabled">
+    </div>
+
     <textarea id="logArea" class="logArea" readonly></textarea>
 
     <div class="container" id="container">
@@ -59,14 +69,12 @@
     <div class="player_board3" id="player_board3">
         <div class="player_name3" id="player_name3"></div>
         <img class="chips3" id="chips3" src="img/chips.png">
-        <div class="player_money3" id="player_money"></div>
+        <div class="player_money3" id="player_money3"></div>
     </div>
     <div class="player_board4" id="player_board4">
         <div class="player_name4" id="player_name4"></div>
         <img class="chips4" id="chips4" src="img/chips.png">
         <div class="player_money4" id="player_money4"></div>
     </div>
-    <!-- <a href="javascript:void(0)" class="btn" onclick="shuffle()">Shuffle</a> -->
-    <!--<div id="deck"></div>-->
 </body>
 </html>
