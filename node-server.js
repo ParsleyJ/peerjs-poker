@@ -2,7 +2,11 @@ const {PeerServer} = require("peer");
 const http = require('http');
 const fs = require('fs');
 
+const PORT = 9000;
+const PATH = "/pokerGame";
+
 const peerServer = PeerServer({port: 9000, path: '/pokerGame'});
+console.log("Started Peer Server, port: " + PORT + "; path: " + PATH);
 
 function notFound(response) {
     response.writeHead(404);
@@ -15,9 +19,11 @@ function sendFileContent(response, fileName, contentType) {
         if (err) {
             response.writeHead(404);
             response.write("Not Found!");
+            console.log(fileName + " - 404 Not Found");
         } else {
             response.writeHead(200, {'Content-Type': contentType});
             response.write(data);
+            console.log(fileName + " - Found, sending data...");
         }
         response.end();
     });
@@ -27,14 +33,17 @@ function streamFileContent(res, fileName, contentType){
     fs.stat(fileName, (err, stats) => {
         if (err) {
             notFound(res)
+            console.log(fileName + " - 404 Not Found");
         } else {
             res.writeHead(200, {'Content-Type': contentType});
             fs.createReadStream(fileName).pipe(res);
+            console.log(fileName + " - Found, piping data...");
         }
     });
 }
 
 
+const WEB_PORT = 3000;
 http.createServer((req, res) => {
     if (req.url === "/server") {
         sendFileContent(res, "browserVersion/server.html", "text/html");
@@ -53,4 +62,6 @@ http.createServer((req, res) => {
     } else {
         notFound(res);
     }
-}).listen(3000);
+}).listen(WEB_PORT);
+
+console.log("Started Web Server on port " + WEB_PORT);

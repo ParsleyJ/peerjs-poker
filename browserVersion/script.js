@@ -289,7 +289,7 @@ $(document).ready(() => {
                                 }
                                 //PLAYER JOINED ROUND
                                 else if(event instanceof events.PlayerJoinedRound){
-                                    playerJoined(event._player);
+                                    playerJoined(event._player, event._budget);
                                 }
                                 //AWAITING FOR PLAYERS
                                 else if(event instanceof events.AwaitingForPlayers){
@@ -356,8 +356,6 @@ $(document).ready(() => {
             }
 
             async function leave() {
-                /*TODO: se il player rientra con lo stesso nome, non rifà il login e non gli carica la board. Il server
-                non riceve nemmeno il suo nuovo accesso */
                 let status = await window.pl.gameStatus();
                 let players = status.players;
                 let playerNames = new Array();
@@ -380,7 +378,7 @@ $(document).ready(() => {
                 alert("YOU LEFT THE GAME!");
             }
 
-            function playerJoined(playerNickname) {
+            function playerJoined(playerNickname, playerBudget) {
                 if(playerNickname !== window.pl._playerName){
                     for (let i = 1; i <= 4; ++i) {
                         let playerName = document.getElementById("player_name" + i);
@@ -388,8 +386,7 @@ $(document).ready(() => {
                         if (playerName.innerText === "") {
                             document.getElementById("player_board" + i).style.display = "block";
                             playerName.innerText = playerNickname;
-                            playerMoney.innerText = "0";
-                            //TODO : quando un player joina la partita, dovrei ricevere anche i suoi soldi iniziali
+                            playerMoney.innerText = ""+playerBudget;
                             break;
                         }
                     }
