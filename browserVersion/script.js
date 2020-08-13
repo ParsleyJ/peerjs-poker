@@ -4,12 +4,16 @@ $(document).ready(() => {
 
 
             function puts(str){
+                let logArea = document.getElementById("logArea");
                 if(str === undefined){
                     console.log();
-                    document.getElementById("logArea").textContent += "\n";
+                    logArea.textContent += "\n";
+                    logArea.scrollTop = logArea.scrollHeight;
+
                 }else{
                     console.log(str);
-                    document.getElementById("logArea").textContent += str+"\n";
+                    logArea.textContent += str+"\n";
+                    logArea.scrollTop = logArea.scrollHeight;
                 }
 
             }
@@ -309,15 +313,15 @@ $(document).ready(() => {
                 }
 
                 async handleDecisionRequest(decisionInput) {
-                    let formattedMoves = decisionInput._possibleMoves.map(m => {
-                        switch (m) {
-                            case "bet":
-                            case "raise":
-                                return m + " how_much ";
-                            default:
-                                return m;
-                        }
-                    })
+                    // let formattedMoves = decisionInput._possibleMoves.map(m => {
+                    //     switch (m) {
+                    //         case "bet":
+                    //         case "raise":
+                    //             return m + " how_much ";
+                    //         default:
+                    //             return m;
+                    //     }
+                    // })
                     puts("Your cards: " + decisionInput._cardsInHand.map(
                         c => poker.Card.fromObj(c)
                     ));
@@ -326,8 +330,8 @@ $(document).ready(() => {
                     ));
                     puts("Your budget: " + (await this.request("budget")).budget);
                     puts("You already betted: " + decisionInput._myPreviousBet);
-                    puts("Possible moves: ")
-                    puts(" - " + formattedMoves.join("\n - "))
+                    // puts("Possible moves: ")
+                    // puts(" - " + formattedMoves.join("\n - "))
 
                     let input = null;
                     while(input === null||input===undefined) {
