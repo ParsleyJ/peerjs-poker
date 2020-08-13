@@ -205,6 +205,20 @@ define((require) => {
         }
     }
 
+    class AllInDecision extends Decision {
+        _howMuch;
+
+        constructor(howMuch) {
+            super();
+            this._howMuch = howMuch;
+        }
+
+        toString() {
+            return "(make and all-in, putting a total of " + this._howMuch + " on the plate)";
+        }
+    }
+
+
     class LeaveDecision extends FoldDecision {
         toString() {
             return "(leave)";
@@ -239,7 +253,7 @@ define((require) => {
             this.player.budget += howMuch;
         }
 
-        playerInterfaceDestroyed(){
+        playerInterfaceDestroyed() {
             //override me
         }
 
@@ -271,6 +285,8 @@ define((require) => {
                     return new RaiseDecision(bettingDecisionCallback());
                 case "leave":
                     return new LeaveDecision();
+                case "allin":
+                    return new AllInDecision(bettingDecisionCallback());
                 default:
                     throw "Invalid decision : '" + moveName + "'";
             }
@@ -496,6 +512,7 @@ define((require) => {
         _speakFlags = new Set();
         _allFoldedWinner = null;
 
+
         constructor(round, collectedBets) {
             super(round);
             this._collectedBets = collectedBets;
@@ -511,6 +528,19 @@ define((require) => {
             this._speakFlags.add(player);
         }
 
+        setPlayerDidAllInFlag(player) {
+            this.round._allInsPlayers.add(player);
+        }
+
+        didPlayerAllIn(player) {
+            this.round._allInsPlayers.has(player);
+        }
+
+        /**
+         * We reach a "bet consensus" state if each player did either fold, or betted the current maxBet (a.k.a.
+         * called the latest raise), or chose to all-in.
+         * @returns {boolean|boolean}
+         */
         reachedBetConsensus() {
             let maxBet = this.maxBet;
             let entries = [];
@@ -518,7 +548,7 @@ define((require) => {
                 entries.push(e);
             }
             return entries.length === this.game.playerInterfaces.length
-                && entries.every(e => e[1] === -1 || e[1] === maxBet);
+                && entries.every(e => !!(e[1] === -1 || e[1] === maxBet || this.didPlayerAllIn(e[0])));
         }
 
 
@@ -582,7 +612,6 @@ define((require) => {
                 // get the next player that has to speak
                 let pl = (this.game.playerInterfaces)[playerTurnCounter % this.game.playerInterfaces.length]
                 // did the player fold before in this round?
-                puts("Turn to decide of " + pl);
                 if (this.round.didPlayerFold(pl)) {
                     // did everyone fold? (dammit)
                     if (this.game.playerInterfaces.every(p => this.round.didPlayerFold(p))) {
@@ -594,33 +623,41 @@ define((require) => {
                     continue;
                 }
 
+                if(this.didPlayerAllIn(pl)){
+                    // pl previously alled-in, so he can't do anything else now.
+                    // skipping him/her
+                    playerTurnCounter++
+                    continue;
+                }
+
+                puts("Turn to decide of " + pl);
                 // get the amount of money already betted by this player
                 let previousPlayerBet = this.getBet(pl);
                 if (previousPlayerBet === undefined || previousPlayerBet === null || previousPlayerBet === -1) {
                     previousPlayerBet = 0;
                 }
 
-                let possibleMoves; // list of possible moves, to be populate depending on the state of the game
+                let possibleMoves; // list of possible moves, to be populated depending on the state of the game
                 let neededBet = this.maxBet - previousPlayerBet; // amount of money needed to reach the maximum bet
                 if (pl.player.budget < neededBet) {
                     //insufficient funds to call or bet
-                    puts("" + pl + " has unsufficient funds and can only fold or leave.");
+                    puts("" + pl + " has unsufficient funds and can only fold, leave or all-in.");
                     pl.notifyEvent(new events.InsufficientFundsToBet(pl.player.budget, neededBet))
                         .then(() => console.log("notification sent to " + pl.player.name));
-                    possibleMoves = ["fold", "leave"];
+                    possibleMoves = ["fold", "leave", "allin"];
                 } else if (pl.player.budget === neededBet) {
                     // the player has just enough money to call
                     if (aPlayerDidBetOrCall) {// Saul - ehe
                         // cannot check if someone in this phase already betted
-                        possibleMoves = ["fold", "call", "leave"];
+                        possibleMoves = ["fold", "call", "allin", "leave"];
                     } else {
-                        possibleMoves = ["fold", "call", "check", "leave"];
+                        possibleMoves = ["fold", "call", "check", "allin", "leave"];
                     }
                 } else if (aPlayerDidBetOrCall) {// Saul - ehe
                     // cannot check if someone in this phase already betted
-                    possibleMoves = ["fold", "raise", "call", "leave"];
+                    possibleMoves = ["fold", "raise", "call", "allin", "leave"];
                 } else {
-                    possibleMoves = ["fold", "bet", "call", "check", "leave"];
+                    possibleMoves = ["fold", "bet", "call", "check", "allin", "leave"];
                 }
 
                 // array of simple object regarding the current betting state, to be sent to the player for decision
@@ -706,7 +743,7 @@ define((require) => {
                         let toAdded = decision.howMuch - previousPlayerBet;
                         if (decision.howMuch < this.maxBet || toAdded > pl.player.budget) {
                             puts("Invalid bet! The player attempted to bet " + decision.howMuch +
-                                " but it had to bet at least " + this.maxBet);
+                                " but it had to bet at least " + this.maxBet + " and has a budget of " + pl.player.budget);
                             puts("Reasking player.");
                             invalidDecision = true;
                             break;
@@ -717,7 +754,13 @@ define((require) => {
                         puts("    --> " + pl);
                         puts("New max bet: " + decision.howMuch + "; Plate: " + this.round.plate);
                         puts("bets: " + prettyStringMap(this.collectedBets));
-                        this.game.broadCastEvent(new events.BetDone(pl.player.name, decision.howMuch));
+                        if (toAdded === pl.player.budget) {
+                            puts("Player did an implicit all-in by raising the bet by all its remaining budget.")
+                            this.setPlayerDidAllInFlag(pl);
+                            this.game.broadCastEvent(new events.AllInDone(pl.player.name, decision.howMuch))
+                        } else {
+                            this.game.broadCastEvent(new events.BetDone(pl.player.name, decision.howMuch));
+                        }
                         aPlayerDidBetOrCall = true;
                         this.setPlayerSpeakFlag(pl);
                     }
@@ -736,16 +779,35 @@ define((require) => {
                             puts("    --> " + pl + "");
                             puts("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
                             puts("bets: " + prettyStringMap(this.collectedBets));
-                            this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet));
+                            if (toBeAdded === pl.player.budget) {
+                                puts("Player did an implicit all-in by calling the bet with all its remaining budget.")
+                                this.setPlayerDidAllInFlag(pl);
+                                this.game.broadCastEvent(new events.AllInDone(pl.player.name, decision.howMuch));
+                            } else {
+                                this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet));
+                            }
                             aPlayerDidBetOrCall = true;
                             this.setPlayerSpeakFlag(pl);
                         }
                     }
                         break;
 
+                    case decision instanceof AllInDecision: {
+                        let toBeAdded = pl.player.budget;
+                        this.putBet(pl, previousPlayerBet + toBeAdded);
+                        puts("    --> " + pl + "");
+                        puts("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
+                        puts("bets: " + prettyStringMap(this.collectedBets));
+                        this.setPlayerDidAllInFlag(pl);
+                        this.game.broadCastEvent(new events.AllInDone(pl.player.name, previousPlayerBet + toBeAdded));
+                        aPlayerDidBetOrCall = true;
+                        this.setPlayerSpeakFlag(pl);
+                    }
+                        break;
+
                     case decision instanceof CheckDecision: {
                         this.game.broadCastEvent(new events.CheckDone(pl.player.name));
-                        //do nothing
+                        //do nothing else
                     }
                         break;
                     default: {
@@ -912,6 +974,7 @@ define((require) => {
         _table = [];
         _holes = new Map();
         _foldedPlayers = new Set();
+        _allInsPlayers = new Set();
         _requiredBetForCall = 0;
         _roundID;
         _game;
@@ -1325,6 +1388,8 @@ define((require) => {
         BetDecision,
         CallDecision,
         RaiseDecision,
+        AllInDecision,
         LeaveDecision,
+
     }
 });

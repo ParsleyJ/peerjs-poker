@@ -93,8 +93,14 @@ define(require=>{
         timeOutDequeue(timeout, predicate = () => true){
             return timeoutPromise(timeout, this.dequeue(predicate))
                 .catch(e => {
-                    let foundIndex = this._listeners.find(e => e[0] === predicate);
+                    let foundIndex = this._listeners.findIndex(e => e[0] === predicate);
                     if (foundIndex !== -1) {
+                        console.log("removing listener because of timeout. listeners:")
+                        for(let l of this._listeners){
+                            console.log(l);
+                        }
+                        console.log("foundIndex=" + foundIndex);
+
                         this._listeners.splice(foundIndex, 1);
                     }
                     throw e;

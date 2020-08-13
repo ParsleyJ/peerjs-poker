@@ -38,6 +38,8 @@ define((require) => {
                     return new CallDone(object._player, object._betAmount);
                 case "CheckDone":
                     return new CheckDone(object._player);
+                case "AllInDone":
+                    return new AllInDone(object._player, object._howMuch);
                 case "ShowDownResults":
                     return new ShowDownResults(object._showDownRanking.map(
                         rankEntry => ({
@@ -425,6 +427,36 @@ define((require) => {
         }
     }
 
+
+    class AllInDone extends PokerEvent {
+        _player;
+        _howMuch;
+
+
+        constructor(player, howMuch) {
+            super();
+            this._player = player;
+            this._howMuch = howMuch;
+        }
+
+
+        get player() {
+            return this._player;
+        }
+
+        get howMuch() {
+            return this._howMuch;
+        }
+
+        getEventType() {
+            return "AllInDone";
+        }
+
+        toString(){
+            return "(event: " + this.player + " chose to all-in! {bet amount =" + this.howMuch + "})";
+        }
+    }
+
     class ShowDownResults extends PokerEvent {
         _showDownRanking;
 
@@ -593,6 +625,7 @@ define((require) => {
         FoldDone,
         CallDone,
         CheckDone,
+        AllInDone,
         ShowDownResults,
         QueueInfo,
         PlayersBeforeYou,
