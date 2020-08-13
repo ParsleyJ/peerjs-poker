@@ -123,9 +123,6 @@ $(document).ready(() => {
                 }
 
                 register(to, clbk) {
-                    console.log(clbk);
-                    console.log(typeof (clbk));
-
                     puts("registering to " + to + " ...");
                     let registerConnection = this._peer.connect(to);
 
@@ -374,6 +371,7 @@ $(document).ready(() => {
                 document.getElementById("game_title").style.display = "block";
                 document.getElementById("startbtn").style.display = "block";
                 document.getElementById("container").style.display = "flex";
+                window.pl.disconnectAndDestroy()
                 alert("YOU LEFT THE GAME!");
             }
 

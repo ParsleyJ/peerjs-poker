@@ -158,6 +158,11 @@ define(require => {
             }
         }
 
+        playerInterfaceDestroyed(){
+            this._peer.destroy();
+            this._connection = null
+        }
+
 
         removeMoney(howMuch) {
             let removed = super.removeMoney(howMuch);
@@ -175,6 +180,7 @@ define(require => {
                     "{DISCONNECTED}"
             );
         }
+
 
 
         async notifyEvent(event) {

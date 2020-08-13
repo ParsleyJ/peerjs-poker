@@ -239,6 +239,10 @@ define((require) => {
             this.player.budget += howMuch;
         }
 
+        playerInterfaceDestroyed(){
+            //override me
+        }
+
         removeMoney(howMuch) {
             if (this.player.budget < howMuch) {
                 throw "Not enough money!"
@@ -1120,6 +1124,9 @@ define((require) => {
             }
         }
 
+        /**
+         * @param {PlayerInterface} playerInterface
+         */
         deregisterPlayer(playerInterface) {
             let prevPlIntfsSize = this._playerInterfaces.length;
             this._playerInterfaces = this._playerInterfaces.filter(
@@ -1141,6 +1148,8 @@ define((require) => {
                 puts(playerInterface + " (queued) left the lobby.");
                 this.broadCastQueueInformation();
             }
+
+            playerInterface.playerInterfaceDestroyed()
         }
 
         incCounter() {
