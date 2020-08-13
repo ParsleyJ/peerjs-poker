@@ -40,7 +40,8 @@ define((require) => {
                     return new ShowDownResults(object._showDownRanking.map(
                         rankEntry => ({
                             player:rankEntry.player,
-                            pattern: HandPattern.fromObject(rankEntry.pattern)
+                            pattern: HandPattern.fromObject(rankEntry.pattern),
+                            hole: rankEntry.hole.map(c => Card.fromObj(c)),
                         })
                     ));
                 case "QueueInfo":
@@ -389,7 +390,10 @@ define((require) => {
     class ShowDownResults extends PokerEvent {
         _showDownRanking;
 
-
+        /**
+         *
+         * @param {[{player:string, pattern:HandPattern, hole:[Card]}]} showDownRanking
+         */
         constructor(showDownRanking) {
             super();
             this._showDownRanking = showDownRanking;
@@ -406,7 +410,7 @@ define((require) => {
 
         toString(){
             return "(event: ShowDown completed, results: [" + this.showDownRanking.map(
-                entry => "(player: '" + entry.player + "'; pattern: " + entry.pattern + ")"
+                entry => "(player: '" + entry.player + "'; pattern: " + entry.pattern + "; hole: "+entry.hole+")"
             ) + "])";
         }
     }
