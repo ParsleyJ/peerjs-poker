@@ -229,13 +229,6 @@ $(document).ready(() => {
                         switch (message.messageType) {
                             case "event": {
                                 let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
-                                //QUEUE INFO
-                                if(event instanceof events.QueueInfo){
-                                    await leave();
-                                    window.pl.disconnectAndDestroy();
-                                    alert("THE GAME ROOM IS ALREADY FULL!");
-                                    //TODO bugfix
-                                }
                                 //ROUND ABOUT TO START
                                 if(event instanceof events.RoundAboutToStart){
                                     //Nothing
@@ -348,7 +341,12 @@ $(document).ready(() => {
                                 //PLAYER DISQUALIFIED
                                 else if(event instanceof events.PlayerDisqualified){
                                     alert("PLAYER "+event._player+" DISQUALIFIED, REASON: "+event._reason);
-                                    playerLeft(event._player);
+                                    if(event._player === window.pl._playerName){
+                                        await leave();
+                                    }
+                                    else{
+                                        playerLeft(event._player);
+                                    }
                                 }
                                 puts("" + event);
                             }
@@ -412,6 +410,10 @@ $(document).ready(() => {
                     playerNames.push(players[i].name);
                 }
                 clearTable(playerNames);
+                await serverDisconnect();
+            }
+
+            async function serverDisconnect() {
                 document.getElementById("cards_board").style.display = "none";
                 document.getElementById("player_board1").style.display = "none";
                 document.getElementById("player_board2").style.display = "none";
@@ -759,16 +761,28 @@ $(document).ready(() => {
                         setTimeout((() => {
                             window.pl.register("room0", function(){
                                 resolve()
+                            }, () => {
+                                alert("SERVER DISCONNECTED!");
+                                serverDisconnect();
                             });
                         }), 500);
                     })
                 }
 
                 startClient().then(()=>{
-                    displayBoard();
-                    placePlayerOnBoard().then(()=>{
-                        //checkForOtherPlayers();
-                    })
+                    /*window.pl.gameStatus().then(gameStatus => {
+                        let players = gameStatus.players;
+                        if(players.length >= 4 && !players.some((p) => p.name === window.pl._playerName)){
+                            alert("THE GAME ROOM IS ALREADY FULL!");
+                            window.pl.disconnectAndDestroy();
+                        }
+                        else{*/
+                            displayBoard();
+                            placePlayerOnBoard().then(()=>{
+                                //checkForOtherPlayers();
+                            })
+                        //}
+                    //})
                 });
 
                 return false;
