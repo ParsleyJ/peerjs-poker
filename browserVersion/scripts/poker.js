@@ -206,15 +206,13 @@ define((require) => {
     }
 
     class AllInDecision extends Decision {
-        _howMuch;
 
-        constructor(howMuch) {
+        constructor() {
             super();
-            this._howMuch = howMuch;
         }
 
         toString() {
-            return "(make and all-in, putting a total of " + this._howMuch + " on the plate)";
+            return "(make and all-in)";
         }
     }
 
@@ -265,12 +263,6 @@ define((require) => {
             return howMuch;
         }
 
-        allIn() {
-            let temp = this.player.budget;
-            this.player.budget = 0;
-            return temp;
-        }
-
         static decodeDecision(moveName, bettingDecisionCallback = () => -1) {
             switch (moveName.toLowerCase()) {
                 case "fold":
@@ -286,7 +278,7 @@ define((require) => {
                 case "leave":
                     return new LeaveDecision();
                 case "allin":
-                    return new AllInDecision(bettingDecisionCallback());
+                    return new AllInDecision();
                 default:
                     throw "Invalid decision : '" + moveName + "'";
             }
@@ -489,6 +481,8 @@ define((require) => {
     }
 
     class Deal extends RoundPhase {
+        _everyoneFoldedWinner = null;
+
         constructor(round) {
             super(round);
         }
@@ -498,12 +492,21 @@ define((require) => {
             this.game.broadCastEvent(new events.PhaseStarted("Dealing cards", this.round.plate, this.round.table));
             puts("DEALING CARDS");
 
+            if (this.game.playerInterfaces.length === 1) {
+                this._everyoneFoldedWinner = this.game.playerInterfaces[0];
+            }
+
             for (let pl of this.game.playerInterfaces) {
                 let cards = this.deck.draw(2);
                 this.setHoleForPlayer(pl, cards);
                 pl.notifyEvent(new events.CardsDealt(cards))
                     .then(() => console.log("notification sent to " + pl.player.name));
             }
+        }
+
+
+        get everyoneFoldedWinner() {
+            return this._everyoneFoldedWinner;
         }
     }
 
@@ -528,13 +531,7 @@ define((require) => {
             this._speakFlags.add(player);
         }
 
-        setPlayerDidAllInFlag(player) {
-            this.round._allInsPlayers.add(player);
-        }
 
-        didPlayerAllIn(player) {
-            this.round._allInsPlayers.has(player);
-        }
 
         /**
          * We reach a "bet consensus" state if each player did either fold, or betted the current maxBet (a.k.a.
@@ -548,7 +545,7 @@ define((require) => {
                 entries.push(e);
             }
             return entries.length === this.game.playerInterfaces.length
-                && entries.every(e => !!(e[1] === -1 || e[1] === maxBet || this.didPlayerAllIn(e[0])));
+                && entries.every(e => !!(e[1] === -1 || e[1] === maxBet || this.round.didPlayerAllIn(e[0])));
         }
 
 
@@ -591,6 +588,15 @@ define((require) => {
             return this._allFoldedWinner;
         }
 
+        everyoneFoldedOrAlledIn() {
+            let entries = [];
+            for (let e of this._collectedBets.entries()) {
+                entries.push(e);
+            }
+            return entries.length === this.game.playerInterfaces.length
+                && entries.every(e => !!(e[1] === -1 || this.round.didPlayerAllIn(e[0])));
+        }
+
         putBet(byPlayer, howMuch) {
             this._collectedBets.set(byPlayer, howMuch);
         }
@@ -605,7 +611,7 @@ define((require) => {
             // how to read this condition: exit when EITHER (everyone spoke AND we reached bet consensus)
             //                                           OR someone won because everyone folded
             while (!(
-                this.everyoneSpokeAtLeastOneTime()
+                (this.everyoneSpokeAtLeastOneTime() || this.everyoneFoldedOrAlledIn())
                 && this.reachedBetConsensus()
                 || this.someoneWonForEveryoneFolded
             )) {
@@ -623,7 +629,7 @@ define((require) => {
                     continue;
                 }
 
-                if(this.didPlayerAllIn(pl)){
+                if(this.round.didPlayerAllIn(pl)){
                     // pl previously alled-in, so he can't do anything else now.
                     // skipping him/her
                     playerTurnCounter++
@@ -757,7 +763,7 @@ define((require) => {
                         puts("bets: " + prettyStringMap(this.collectedBets));
                         if (toAdded === pl.player.budget) {
                             puts("Player did an implicit all-in by raising the bet by all its remaining budget.")
-                            this.setPlayerDidAllInFlag(pl);
+                            this.round.setPlayerDidAllInFlag(pl);
                             this.game.broadCastEvent(new events.AllInDone(pl.player.name, decision.howMuch))
                         } else {
                             this.game.broadCastEvent(new events.BetDone(pl.player.name, decision.howMuch));
@@ -770,19 +776,19 @@ define((require) => {
                     case decision instanceof CallDecision: {
 
                         let toBeAdded = this.maxBet - previousPlayerBet;
-                        this.putBet(pl, this.maxBet);
 
                         if (pl.player.budget < toBeAdded) {
                             puts("" + pl + " tried to call, but does not have enough money to do so!");
                             invalidDecision = true;
                         } else {
+                            this.putBet(pl, this.maxBet);
                             this.round.putOnPlate(pl.removeMoney(toBeAdded));
                             puts("    --> " + pl + "");
                             puts("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
                             puts("bets: " + prettyStringMap(this.collectedBets));
-                            if (toBeAdded === pl.player.budget) {
+                            if (toBeAdded >= pl.player.budget) {
                                 puts("Player did an implicit all-in by calling the bet with all its remaining budget.")
-                                this.setPlayerDidAllInFlag(pl);
+                                this.round.setPlayerDidAllInFlag(pl);
                                 this.game.broadCastEvent(new events.AllInDone(pl.player.name, decision.howMuch));
                             } else {
                                 this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet));
@@ -796,10 +802,11 @@ define((require) => {
                     case decision instanceof AllInDecision: {
                         let toBeAdded = pl.player.budget;
                         this.putBet(pl, previousPlayerBet + toBeAdded);
+                        this.round.putOnPlate(pl.removeMoney(toBeAdded));
                         puts("    --> " + pl + "");
                         puts("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
                         puts("bets: " + prettyStringMap(this.collectedBets));
-                        this.setPlayerDidAllInFlag(pl);
+                        this.round.setPlayerDidAllInFlag(pl);
                         this.game.broadCastEvent(new events.AllInDone(pl.player.name, previousPlayerBet + toBeAdded));
                         aPlayerDidBetOrCall = true;
                         this.setPlayerSpeakFlag(pl);
@@ -838,6 +845,9 @@ define((require) => {
         async execute() {
             await super.execute();
             puts("PRE-FLOP BETTING");
+            if(this.someoneWonForEveryoneFolded){
+                puts("EVERYONE FOLDED WINNER: " + this.everyoneFoldedWinner);
+            }
             this.game.broadCastEvent(new events.PhaseStarted("Pre flop betting", this.round.plate, this.round.table));
             await this.reachBetConsensus();
         }
@@ -1018,6 +1028,14 @@ define((require) => {
             this._requiredBetForCall = value;
         }
 
+        setPlayerDidAllInFlag(player) {
+            this._allInsPlayers.add(player);
+        }
+
+        didPlayerAllIn(player) {
+            return this._allInsPlayers.has(player);
+        }
+
         setPlayerAsFolded(player) {
             this._foldedPlayers.add(player);
         }
@@ -1086,7 +1104,9 @@ define((require) => {
                 if (Phase === PreFlop || Phase === TheFlop || Phase === TheTurn || Phase === TheRiver) {
                     phase = new Phase(this, previousBets);
                     phase.setWinnerForEveryoneFolded(winnerAsEveryoneFolded);
+
                     await phase.execute();
+
                     previousBets = phase.collectedBets;
                     winnerAsEveryoneFolded = phase.everyoneFoldedWinner;
                 } else {
@@ -1095,6 +1115,9 @@ define((require) => {
                         phase.everyoneFoldedWinner = winnerAsEveryoneFolded;
                     }
                     await phase.execute();
+                    if(phase instanceof Deal){
+                        winnerAsEveryoneFolded = phase.everyoneFoldedWinner;
+                    }
                 }
             }
         }

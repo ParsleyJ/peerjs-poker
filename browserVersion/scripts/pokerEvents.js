@@ -453,7 +453,7 @@ define((require) => {
         }
 
         toString(){
-            return "(event: " + this.player + " chose to all-in! {bet amount =" + this.howMuch + "})";
+            return "(event: " + this.player + " chose to all-in!)";
         }
     }
 
