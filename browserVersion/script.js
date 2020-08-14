@@ -36,6 +36,7 @@ $(document).ready(() => {
                     $("#leave_button").click(() => {
                         toggleButtons(possibleMoves, false);
                         leave();
+                        alert("YOU LEFT THE GAME!");
                         resolve("leave")
                     })
                     $("#allin_button").click(() => {
@@ -228,6 +229,13 @@ $(document).ready(() => {
                         switch (message.messageType) {
                             case "event": {
                                 let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
+                                //QUEUE INFO
+                                if(event instanceof events.QueueInfo){
+                                    await leave();
+                                    window.pl.disconnectAndDestroy();
+                                    alert("THE GAME ROOM IS ALREADY FULL!");
+                                    //TODO bugfix
+                                }
                                 //ROUND ABOUT TO START
                                 if(event instanceof events.RoundAboutToStart){
                                     //Nothing
@@ -334,11 +342,13 @@ $(document).ready(() => {
                                 }
                                 //PEER DISCONNECTED
                                 else if(event instanceof events.PeerDisconnected){
-                                    //TODO
+                                    alert("PEER DISCONNECTED = PLAYER "+event._playerName);
+                                    playerLeft(event._playerName);
                                 }
                                 //PLAYER DISQUALIFIED
                                 else if(event instanceof events.PlayerDisqualified){
-                                    //TODO
+                                    alert("PLAYER "+event._player+" DISQUALIFIED, REASON: "+event._reason);
+                                    playerLeft(event._player);
                                 }
                                 puts("" + event);
                             }
@@ -405,8 +415,8 @@ $(document).ready(() => {
                 document.getElementById("cards_board").style.display = "none";
                 document.getElementById("player_board1").style.display = "none";
                 document.getElementById("player_board2").style.display = "none";
-                document.getElementById("player_board2").style.display = "none";
                 document.getElementById("player_board3").style.display = "none";
+                document.getElementById("player_board4").style.display = "none";
                 document.getElementById("button_container").style.display = "none";
                 document.getElementById("logArea").style.display = "none";
                 document.getElementById("round_number").style.display = "none";
@@ -414,8 +424,7 @@ $(document).ready(() => {
                 document.getElementById("game_title").style.display = "block";
                 document.getElementById("startbtn").style.display = "block";
                 document.getElementById("container").style.display = "flex";
-                window.pl.disconnectAndDestroy()
-                alert("YOU LEFT THE GAME!");
+                window.pl.disconnectAndDestroy();
             }
 
             function playerJoined(playerNickname, playerBudget) {
@@ -637,10 +646,8 @@ $(document).ready(() => {
 
             function showDownResults(results) {
                 for(let i=0; i<results.length; ++i){
-                    alert("GG");
                     let name = results[i].player;
                     if(name !== window.pl._playerName){
-                        alert(name);
                         let hole = results[i].hole;
                         for(let j=1; j<=4; ++j){
                             let playerName = document.getElementById("player_name" + j);
@@ -650,10 +657,8 @@ $(document).ready(() => {
                                 card1.parentNode.removeChild(card1);
                                 card2.parentNode.removeChild(card2);
                                 let playerBoard = document.getElementById("player_board" + j);
-                                alert("playerboard"+j);
                                 let first = true;
                                 for(let c of hole){
-                                    alert("CARD GG");
                                     let card = document.createElement("div");
                                     let value = document.createElement("div");
                                     let suit = document.createElement("div");
@@ -678,7 +683,6 @@ $(document).ready(() => {
                         }
                     }
                 }
-                alert(ranking.toString());
             }
 
             function fold(player) {
@@ -763,7 +767,7 @@ $(document).ready(() => {
                 startClient().then(()=>{
                     displayBoard();
                     placePlayerOnBoard().then(()=>{
-                        checkForOtherPlayers();
+                        //checkForOtherPlayers();
                     })
                 });
 
