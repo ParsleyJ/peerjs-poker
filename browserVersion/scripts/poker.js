@@ -250,7 +250,7 @@ define((require) => {
         }
 
         awardMoney(howMuch) {
-            this.player.budget += howMuch;
+            this._player._budget = this._player._budget + howMuch
         }
 
         playerInterfaceDestroyed() {
@@ -960,7 +960,7 @@ define((require) => {
             let howMuchWon = Math.floor(this.round.plate / winners.length);
             for (let w of winners) {
                 puts("" + w + " wins " + howMuchWon + "!!!");
-                w.awardMoney(Math.floor(howMuchWon / winners.length));
+                w.awardMoney(howMuchWon);
                 this.game.broadCastEvent(new events.PlayerWonRound(w.player.name, howMuchWon))
             }
             //TODO in case of a tie, some leftovers are left on the plate. What to do with them (now are lost)?
@@ -1183,7 +1183,8 @@ define((require) => {
             } else {
                 this._playerInterfaces.push(playerInterface);
                 puts("" + playerInterface + " joined the lobby, ready to start.");
-                this.broadCastEvent(new events.PlayerJoinedRound(playerInterface.player.name));
+                this.broadCastEvent(new events.PlayerJoinedRound(playerInterface.player.name,
+                    playerInterface.player.budget));
                 return -1;
             }
         }
@@ -1255,7 +1256,8 @@ define((require) => {
                     this._playerInterfaces.push(pl);
                     addedPlayers++;
                     puts("" + pl + " was in the lobby and now enters the game.");
-                    this.broadCastEvent(new events.PlayerJoinedRound(pl.player.name));
+                    this.broadCastEvent(new events.PlayerJoinedRound(pl.player.name,
+                        pl.player.budget));
                 }
             }
 

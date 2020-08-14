@@ -59,7 +59,7 @@ define((require) => {
                 case "AwaitingForPlayers":
                     return new AwaitingForPlayers();
                 case "PlayerJoinedRound":
-                    return new PlayerJoinedRound(object._player);
+                    return new PlayerJoinedRound(object._player, object._budget);
                 default:
                     return new PokerEvent();
             }
@@ -573,17 +573,19 @@ define((require) => {
         }
 
         toString(){
-            return "(event: the round about to start! {players: " + this.players + "})";
+            return "(event: the round is about to start! {players: " + this.players + "})";
         }
     }
 
     class PlayerJoinedRound extends PokerEvent{
         _player;
+        _budget;
 
 
-        constructor(player) {
+        constructor(player, budget) {
             super();
             this._player = player;
+            this._budget = budget;
         }
 
 
@@ -591,12 +593,16 @@ define((require) => {
             return this._player;
         }
 
+        get budget() {
+            return this._budget;
+        }
+
         getEventType() {
             return "PlayerJoinedRound";
         }
 
         toString(){
-            return "(event: player " + this._player + " joined this round)";
+            return "(event: player " + this._player + " joined this round {with budget: "+this._budget+"})";
         }
     }
 
