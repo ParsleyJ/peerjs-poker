@@ -7,6 +7,11 @@
     src: url("font/CoffeetinInitials-YXJ2.ttf");
 }
 
+@font-face {
+    font-family: 'Carnevalee';
+    src: url("font/Carnevalee_Freakshow.ttf");
+}
+
 * {
     box-sizing: border-box;
 }
@@ -37,12 +42,26 @@ button[disabled]{
 
 .game_title{
     color: white;
-    font-family: CoffeeTin;
+    font-family: Carnevalee;
     font-weight: normal;
     text-align: center;
-    font-size: 6em;
+    font-size: 8em;
     padding: 10px;
     margin: auto 10px auto auto;
+}
+
+.round_number{
+    color: white;
+    font-family: Carnevalee;
+    font-weight: bold;
+    text-align: center;
+    font-size: 2em;
+    padding: 10px;
+    margin: auto 10px auto auto;
+    display: none;
+    position: absolute;
+    top: 98px;
+    right: 10px;
 }
 
 .logArea{
@@ -275,6 +294,26 @@ input[type=submit] {
     position: absolute;
     top: 50px;
     left: 110px;
+}
+
+.allin_button{
+    box-shadow:inset 0px 1px 0px 0px darkred;
+    background: red linear-gradient(to bottom, darkred 5%, red 100%);
+    border-radius:6px;
+    border:2px solid black;
+    cursor:pointer;
+    color: white;
+    font-family:Arial;
+    font-size:15px;
+    font-weight:bold;
+    padding:5px 10px;
+    text-decoration:none;
+    text-shadow:0px 1px 0px red;
+    width: 100px;
+    height: 70px;
+    position: absolute;
+    top: 50px;
+    left: 210px;
 }
 
 .bet_button{
