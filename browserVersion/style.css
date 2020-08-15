@@ -589,3 +589,31 @@ input[type=submit] {
     background-position-x:90px;
     background-position-y:100px;
 }
+
+
+/* TODO */
+.floatingDiv {
+    position:absolute;
+    z-index:10000;
+    left:33%;
+    top:250px;
+    width:33%;
+    background-color:#FFF;
+    min-width:217px;
+    text-align: left;
+    border-radius: 10px 10px;
+    border:solid;
+    border-width:1px;
+    border-color:#000;
+    vertical-align:top;
+    padding:10px;
+
+    background-image: -ms-linear-gradient(top, #CCCCCC 0%, #FFFFFF 25px, #FFFFFF 100%);
+    background-image: -moz-linear-gradient(top, #CCCCCC 0%, #FFFFFF 25px, #FFFFFF 100%);
+    background-image: -o-linear-gradient(top, #CCCCCC 0%, #FFFFFF 25px, #FFFFFF 100%);
+    background-image: -webkit-linear-gradient(top, #CCCCCC 0%, #FFFFFF 25px, #FFFFFF 100%);
+    background-image: linear-gradient(to bottom, #CCCCCC 0%, #FFFFFF 25px, #FFFFFF 100%);
+
+    box-shadow:3px 3px 5px #003;
+    filter: progid:DXImageTransform.Microsoft.Shadow(color='#000033', Direction=145, Strength=3);
+}

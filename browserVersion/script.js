@@ -2,6 +2,21 @@ $(document).ready(() => {
     require(["./scripts/remotePlayer", "./scripts/pokerEvents", "./scripts/poker", "./scripts/Card"],
         (remotePlayer, events, poker) => {
 
+            window.openAlert = function(id){
+                "use strict";
+                document.getElementById(id).style.visibility = 'visible';
+            }
+            window.closeAlert = function (id){
+                "use strict";
+                document.getElementById(id).style.visibility = 'hidden';
+            }
+            function myAlert(title, message) {
+                "use strict";
+                document.getElementById("msgBox").innerHTML = "<a href=\"javascript:closeAlert('msgBox')\" style=\"float:right\">" +
+                    "<p>[X]</p>" +
+                    "</a><h2 style=\"text-align:center; margin-top:0;\">" + title + "</h2><hr><p align=\"left\">" + message + "</p>";
+                openAlert("msgBox");
+            }
 
             function puts(str){
                 let logArea = document.getElementById("logArea");
@@ -312,11 +327,11 @@ $(document).ready(() => {
                                 }
                                 //CHECKDONE
                                 else if(event instanceof events.CheckDone){
-                                    alert("PLAYER "+event._player+" CHECKS");
+                                    myAlert("Notification","PLAYER "+event._player+" CHECKS");
                                 }
                                 //CALLDONE
                                 else if(event instanceof events.CallDone){
-                                    alert("PLAYER "+event._player+" CALLS ("+event._betAmount+")");
+                                    myAlert("Notification","PLAYER "+event._player+" CALLS ("+event._betAmount+")");
                                     updateBet(event._player, event._betAmount);
                                 }
                                 //BETDONE
@@ -325,17 +340,17 @@ $(document).ready(() => {
                                 }
                                 //ALL IN
                                 else if(event instanceof events.AllInDone){
-                                    alert("PLAYER "+ event._player+" GOES ALL IN!");
+                                    myAlert("Notification","PLAYER "+ event._player+" GOES ALL IN!");
                                     updateBet(event._player, event._howMuch);
                                 }
                                 //INSUFFICIENT FUNDS TO BET
                                 else if(event instanceof events.InsufficientFundsToBet){
-                                    alert("You cannot bet:\nYOUR MONEY: "+event._money+"\nMONEY NEEDED: "+event._moneyNeeded);
+                                    myAlert("Notification","You cannot bet:\nYOUR MONEY: "+event._money+"\nMONEY NEEDED: "+event._moneyNeeded);
                                 }
                                 //SHOWDOWN RESULTS
                                 else if(event instanceof events.ShowDownResults){
                                     showDownResults(event._showDownRanking);
-                                    alert(event.toString());
+                                    myAlert("Notification", event.toString());
                                 }
                                 //PLAYER WON ROUND
                                 else if(event instanceof events.PlayerWonRound){
@@ -361,12 +376,12 @@ $(document).ready(() => {
                                 }
                                 //PEER DISCONNECTED
                                 else if(event instanceof events.PeerDisconnected){
-                                    alert("PEER DISCONNECTED = PLAYER "+event._playerName);
+                                    myAlert("Notification","PEER DISCONNECTED = PLAYER "+event._playerName);
                                     playerLeft(event._playerName);
                                 }
                                 //PLAYER DISQUALIFIED
                                 else if(event instanceof events.PlayerDisqualified){
-                                    alert("PLAYER "+event._player+" DISQUALIFIED, REASON: "+event._reason);
+                                    myAlert("Notification","PLAYER "+event._player+" DISQUALIFIED, REASON: "+event._reason);
                                     if(event._player === window.pl._playerName){
                                         await leave();
                                     }
@@ -537,7 +552,7 @@ $(document).ready(() => {
             }
 
             function playerWonRound(event) {
-                alert("PLAYER "+event._player+" WON "+event._howMuch+" THIS ROUND!");
+                myAlert("Notification","PLAYER "+event._player+" WON "+event._howMuch+" THIS ROUND!");
                 for(let i=1; i <= 4; ++i){
                     let playerName = document.getElementById("player_name" + i);
                     if(playerName.innerText === event._player){
@@ -794,7 +809,7 @@ $(document).ready(() => {
                             window.pl.register("room0", function(){
                                 resolve()
                             }, () => {
-                                alert("SERVER DISCONNECTED!");
+                                myAlert("Notification","SERVER DISCONNECTED!");
                                 serverDisconnect();
                             });
                         }), 500);
@@ -805,7 +820,7 @@ $(document).ready(() => {
                     /*window.pl.gameStatus().then(gameStatus => {
                         let players = gameStatus.players;
                         if(players.length >= 4 && !players.some((p) => p.name === window.pl._playerName)){
-                            alert("THE GAME ROOM IS ALREADY FULL!");
+                            myAlert("Notification",THE GAME ROOM IS ALREADY FULL!");
                             window.pl.disconnectAndDestroy();
                         }
                         else{*/
