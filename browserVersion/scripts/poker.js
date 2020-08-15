@@ -428,6 +428,10 @@ define((require) => {
             return this.round.getHoleForPlayer(player);
         }
 
+        buildMoneyState(){
+            return this.round.buildMoneyState();
+        }
+
         async execute() {
             puts();
             puts();
@@ -472,7 +476,7 @@ define((require) => {
                 this.round.putOnPlate(blinderPlayer.removeMoney(this.game.rules.blind));
                 this.round.putOnPlate(smallBlinderPlayer.removeMoney(this.game.rules.smallBlind));
                 this.game.broadCastEvent(
-                    new events.BlindsPlaced(blinderPlayer.player.name, smallBlinderPlayer.player.name)
+                    new events.BlindsPlaced(blinderPlayer.player.name, smallBlinderPlayer.player.name, this.buildMoneyState())
                 );
                 this.round.requiredBetForCall = this.game.rules.blind;
                 break; // got here, no need to restart
@@ -715,7 +719,7 @@ define((require) => {
                             );
                         } else {
                             this.game.broadCastEvent(
-                                new events.FoldDone(pl.player.name)
+                                new events.FoldDone(pl.player.name, this.buildMoneyState())
                             );
                         }
 
@@ -763,9 +767,9 @@ define((require) => {
                         if (toAdded === pl.player.budget) {
                             puts("Player did an implicit all-in by raising the bet by all its remaining budget.")
                             this.round.setPlayerDidAllInFlag(pl);
-                            this.game.broadCastEvent(new events.AllInDone(pl.player.name, decision.howMuch))
+                            this.game.broadCastEvent(new events.AllInDone(pl.player.name, decision.howMuch, this.buildMoneyState()))
                         } else {
-                            this.game.broadCastEvent(new events.BetDone(pl.player.name, decision.howMuch));
+                            this.game.broadCastEvent(new events.BetDone(pl.player.name, decision.howMuch, this.buildMoneyState()));
                         }
                         aPlayerDidBetOrCall = true;
                         this.setPlayerSpeakFlag(pl);
@@ -788,9 +792,9 @@ define((require) => {
                             if (toBeAdded >= pl.player.budget) {
                                 puts("Player did an implicit all-in by calling the bet with all its remaining budget.")
                                 this.round.setPlayerDidAllInFlag(pl);
-                                this.game.broadCastEvent(new events.AllInDone(pl.player.name, decision.howMuch));
+                                this.game.broadCastEvent(new events.AllInDone(pl.player.name, decision.howMuch, this.buildMoneyState()));
                             } else {
-                                this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet));
+                                this.game.broadCastEvent(new events.CallDone(pl.player.name, this.maxBet, this.buildMoneyState()));
                             }
                             aPlayerDidBetOrCall = true;
                             this.setPlayerSpeakFlag(pl);
@@ -806,7 +810,7 @@ define((require) => {
                         puts("Current max bet: " + (previousPlayerBet + toBeAdded) + "; Plate: " + this.round.plate);
                         puts("bets: " + prettyStringMap(this.collectedBets));
                         this.round.setPlayerDidAllInFlag(pl);
-                        this.game.broadCastEvent(new events.AllInDone(pl.player.name, previousPlayerBet + toBeAdded));
+                        this.game.broadCastEvent(new events.AllInDone(pl.player.name, previousPlayerBet + toBeAdded, this.buildMoneyState()));
                         aPlayerDidBetOrCall = true;
                         this.setPlayerSpeakFlag(pl);
                     }
@@ -957,7 +961,7 @@ define((require) => {
                         player: hpe[0].player.name,
                         pattern: hpe[1],
                         hole: this.getHoleForPlayer(hpe[0])
-                    }))
+                    })), this.buildMoneyState()
                 ))
 
             }
@@ -970,7 +974,7 @@ define((require) => {
             for (let w of winners) {
                 puts("" + w + " wins " + howMuchWon + "!!!");
                 w.awardMoney(howMuchWon);
-                this.game.broadCastEvent(new events.PlayerWonRound(w.player.name, howMuchWon))
+                this.game.broadCastEvent(new events.PlayerWonRound(w.player.name, howMuchWon, this.buildMoneyState()))
             }
             //TODO in case of a tie, some leftovers are left on the plate. What to do with them (now are lost)?
             this.round.plate = 0;
@@ -1067,6 +1071,17 @@ define((require) => {
                 result += pl + " has cards: " + h + "\n";
             }
             return result;
+        }
+
+        /**
+         * @return {{budgets:[{name:string, money:number}], plate:number}}
+         */
+        buildMoneyState(){
+            let budgets = [];
+            for(let pli of this.game.playerInterfaces){
+                budgets.push({name:pli.player.name, money:pli.player.budget})
+            }
+            return {budgets:budgets, plate: this.plate}
         }
 
         get roundID() {

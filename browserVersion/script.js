@@ -25,7 +25,7 @@ $(document).ready(() => {
             }
 
             function playerBoardNotifA(boardNum, text, time) {
-                let $playerNotifA = document.getElementById("player_notifA"+boardNum);
+                let $playerNotifA = document.getElementById("player_notifA" + boardNum);
                 $playerNotifA.innerText = text;
                 $playerNotifA.style.visibility = "visible";
                 setTimeout(() => {
@@ -35,7 +35,7 @@ $(document).ready(() => {
             }
 
             function playerBoardNotifB(boardNum, text, time) {
-                let $playerNotifB = document.getElementById("player_notifB"+boardNum);
+                let $playerNotifB = document.getElementById("player_notifB" + boardNum);
                 $playerNotifB.innerText = text;
                 $playerNotifB.style.visibility = "visible";
                 setTimeout(() => {
@@ -151,6 +151,29 @@ $(document).ready(() => {
                 }
             }
 
+            /**
+             * @param {{budgets:[{name:string, money:number}], plate:number}} moneyState
+             */
+            function setMoneyState(moneyState) {
+                if (!!moneyState) {
+                    let plate = moneyState.plate;
+                    document.getElementById("plate").innerText = "" + plate;
+
+                    let budgets = moneyState.budgets;
+                    if (!!budgets) {
+                        for (let j = 1; j <= 4; j++) {
+                            let playerNameElement = document.getElementById("player_name" + j);
+                            let playerMoneyElement = document.getElementById("player_money" + j);
+                            let playerName = playerNameElement.innerText;
+                            let playerEntry = budgets.find(entry => entry.name === playerName)
+                            if (!!playerEntry) {
+                                playerMoneyElement.innerText = "" + playerEntry.money;
+                            }
+                        }
+                    }
+                }
+            }
+
 
             class PlayerClient {
                 _peer;
@@ -260,6 +283,7 @@ $(document).ready(() => {
                                 //ROUND ABOUT TO START
                                 if (event instanceof events.RoundAboutToStart) {
                                     //Nothing
+                                    //TODO alert?
                                 }
                                 //ROUND STARTED
                                 if (event instanceof events.RoundStarted) {
@@ -326,25 +350,32 @@ $(document).ready(() => {
                                 }
                                 //BLINDDONE
                                 else if (event instanceof events.BlindsPlaced) {
-                                    placeBlinds(event._blindPlayer, event._smallBlindPlayer);
+                                    //TODO alert?
+
+                                    // placeBlinds(event._blindPlayer, event._smallBlindPlayer);
+                                    setMoneyState(event._moneyState);
                                 }
                                 //CHECKDONE
                                 else if (event instanceof events.CheckDone) {
                                     myAlert("Notification", "PLAYER " + event._player + " CHECKS");
+                                    setMoneyState(event._moneyState);
                                 }
                                 //CALLDONE
                                 else if (event instanceof events.CallDone) {
                                     myAlert("Notification", "PLAYER " + event._player + " CALLS (" + event._betAmount + ")");
                                     updateBet(event._player, event._betAmount);
+                                    setMoneyState(event._moneyState);
                                 }
                                 //BETDONE
                                 else if (event instanceof events.BetDone) {
                                     updateBet(event._player, event._betAmount);
+                                    setMoneyState(event._moneyState);
                                 }
                                 //ALL IN
                                 else if (event instanceof events.AllInDone) {
                                     myAlert("Notification", "PLAYER " + event._player + " GOES ALL IN!");
                                     updateBet(event._player, event._howMuch);
+                                    setMoneyState(event._moneyState);
                                 }
                                 //INSUFFICIENT FUNDS TO BET
                                 else if (event instanceof events.InsufficientFundsToBet) {
@@ -354,10 +385,12 @@ $(document).ready(() => {
                                 else if (event instanceof events.ShowDownResults) {
                                     showDownResults(event._showDownRanking);
                                     myAlert("Notification", event.toString());
+                                    setMoneyState(event._moneyState);
                                 }
                                 //PLAYER WON ROUND
                                 else if (event instanceof events.PlayerWonRound) {
                                     playerWonRound(event);
+                                    setMoneyState(event._moneyState);
                                 }
                                 //PLAYER LEFT
                                 else if (event instanceof events.PlayerLeft) {
@@ -476,6 +509,10 @@ $(document).ready(() => {
                 window.pl.disconnectAndDestroy();
             }
 
+            /**
+             * @param {string} playerNickname
+             * @param {string} playerBudget
+             */
             function playerJoined(playerNickname, playerBudget) {
                 if (playerNickname !== window.pl._playerName) {
                     for (let i = 1; i <= 4; ++i) {
@@ -510,21 +547,22 @@ $(document).ready(() => {
             function placeBlinds(blind, smallblind) {
                 for (let j = 1; j <= 4; ++j) {
                     let playerName = document.getElementById("player_name" + j);
+                    let playerMoneyElement = document.getElementById("player_money" + j);
                     if (playerName.innerText === blind) {
-                        let currentMoney = document.getElementById("player_money" + j).innerText;
-                        document.getElementById("player_money" + j).innerText = (parseInt(currentMoney) - 100).toString();
+                        let currentMoney = playerMoneyElement.innerText;
+                        playerMoneyElement.innerText = (parseInt(currentMoney) - 100).toString();
                     } else if (playerName.innerText === smallblind) {
-                        let currentMoney = document.getElementById("player_money" + j).innerText;
-                        document.getElementById("player_money" + j).innerText = (parseInt(currentMoney) - 50).toString();
+                        let currentMoney = playerMoneyElement.innerText;
+                        playerMoneyElement.innerText = (parseInt(currentMoney) - 50).toString();
                     }
                 }
-                /*
+
                 let currentPlate = document.getElementById("plate").innerText;
                 document.getElementById("plate").innerText = (parseInt(currentPlate) + 150).toString();
-                 */
-                window.pl.getPlateAmount().then(plate => {
-                    document.getElementById("plate").innerText = "" + plate;
-                })
+
+                // window.pl.getPlateAmount().then(plate => {
+                //     document.getElementById("plate").innerText = "" + plate;
+                // })
 
 
             }
@@ -709,12 +747,12 @@ $(document).ready(() => {
                 for (let i = 0; i < results.length; ++i) {
                     //showing patterns:)
                     let name = results[i].player;
-                    for(let j = 1; j <= 4; ++j){
+                    for (let j = 1; j <= 4; ++j) {
                         let boardName = document.getElementById("player_name" + j).innerText;
                         console.log("boardName: " + boardName);
                         console.log("playerName: " + name);
-                        if(name === boardName){
-                            console.log("notifiying_pattern on board: "+j)
+                        if (name === boardName) {
+                            console.log("notifiying_pattern on board: " + j)
                             playerBoardNotifA(j, results[i].pattern._handPatternType, 10_000);
                         }
                     }

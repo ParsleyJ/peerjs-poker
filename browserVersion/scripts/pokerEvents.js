@@ -14,9 +14,9 @@ define((require) => {
                 case "PlayerDisqualified":
                     return new PlayerDisqualified(object._player, object._reason);
                 case "PlayerWonRound":
-                    return new PlayerWonRound(object._player, object._howMuch);
+                    return new PlayerWonRound(object._player, object._howMuch, object._moneyState);
                 case "BlindsPlaced":
-                    return new BlindsPlaced(object._blindPlayer, object._smallBlindPlayer);
+                    return new BlindsPlaced(object._blindPlayer, object._smallBlindPlayer, object._moneyState);
                 case "PhaseStarted":
                     return new PhaseStarted(object._phaseName, object._plate,
                         object._table.map( c => Card.fromObj(c)));
@@ -31,15 +31,15 @@ define((require) => {
                 case "PlayerLeft":
                     return new PlayerLeft(object._player);
                 case "BetDone":
-                    return new BetDone(object._player, object._betAmount);
+                    return new BetDone(object._player, object._betAmount, object._moneyState);
                 case "FoldDone":
-                    return new FoldDone(object._player);
+                    return new FoldDone(object._player, object._moneyState);
                 case "CallDone":
-                    return new CallDone(object._player, object._betAmount);
+                    return new CallDone(object._player, object._betAmount, object._moneyState);
                 case "CheckDone":
-                    return new CheckDone(object._player);
+                    return new CheckDone(object._player, object._moneyState);
                 case "AllInDone":
-                    return new AllInDone(object._player, object._howMuch);
+                    return new AllInDone(object._player, object._howMuch, object._moneyState);
                 case "ShowDownResults":
                     return new ShowDownResults(object._showDownRanking.map(
                         rankEntry => ({
@@ -47,7 +47,7 @@ define((require) => {
                             pattern: HandPattern.fromObject(rankEntry.pattern),
                             hole: rankEntry.hole.map(c => Card.fromObj(c)),
                         })
-                    ));
+                    ), object._moneyState);
                 case "QueueInfo":
                     return new QueueInfo(object._queueSize);
                 case "PlayersBeforeYou":
@@ -69,11 +69,13 @@ define((require) => {
     class PlayerWonRound extends PokerEvent {
         _player;
         _howMuch;
+        _moneyState;
 
-        constructor(player, howMuch) {
+        constructor(player, howMuch, moneyState) {
             super();
             this._player = player;
             this._howMuch = howMuch;
+            this._moneyState = moneyState;
         }
 
 
@@ -97,17 +99,19 @@ define((require) => {
     class BlindsPlaced extends PokerEvent{
         _blindPlayer;
         _smallBlindPlayer;
-
+        _moneyState;
 
         /**
          *
          * @param {string} blindPlayer
-         * @param {string }smallBlindPlayer
+         * @param {string} smallBlindPlayer
+         * @param {{budgets:[{name:string, money:number}], plate:number}} moneyState
          */
-        constructor(blindPlayer, smallBlindPlayer) {
+        constructor(blindPlayer, smallBlindPlayer, moneyState) {
             super();
             this._blindPlayer = blindPlayer;
             this._smallBlindPlayer = smallBlindPlayer;
+            this._moneyState = moneyState
         }
 
         getEventType() {
@@ -205,11 +209,12 @@ define((require) => {
 
     class FoldDone extends PokerEvent {
         _player;
+        _moneyState;
 
-
-        constructor(player) {
+        constructor(player, moneyState) {
             super();
             this._player = player;
+            this._moneyState = moneyState;
         }
 
 
@@ -348,12 +353,13 @@ define((require) => {
     class BetDone extends PokerEvent {
         _player;
         _betAmount;
+        _moneyState;
 
-
-        constructor(player, betAmount) {
+        constructor(player, betAmount, moneyState) {
             super();
             this._player = player;
             this._betAmount = betAmount;
+            this._moneyState = moneyState;
         }
 
 
@@ -378,12 +384,14 @@ define((require) => {
     class CallDone extends PokerEvent {
         _player;
         _betAmount;
+        _moneyState;
 
 
-        constructor(player, betAmount) {
+        constructor(player, betAmount, moneyState) {
             super();
             this._player = player;
             this._betAmount = betAmount;
+            this._moneyState = moneyState;
         }
 
 
@@ -406,11 +414,12 @@ define((require) => {
 
     class CheckDone extends PokerEvent {
         _player;
+        _moneyState;
 
-
-        constructor(player) {
+        constructor(player, moneyState) {
             super();
             this._player = player;
+            this._moneyState = moneyState;
         }
 
 
@@ -431,12 +440,14 @@ define((require) => {
     class AllInDone extends PokerEvent {
         _player;
         _howMuch;
+        _moneyState;
 
 
-        constructor(player, howMuch) {
+        constructor(player, howMuch, moneyState) {
             super();
             this._player = player;
             this._howMuch = howMuch;
+            this._moneyState = moneyState;
         }
 
 
@@ -459,14 +470,17 @@ define((require) => {
 
     class ShowDownResults extends PokerEvent {
         _showDownRanking;
+        _moneyState;
 
         /**
          *
          * @param {[{player:string, pattern:HandPattern, hole:[Card]}]} showDownRanking
+         * @param {{budgets:[{name:string, money:number}], plate:number}} moneyState
          */
-        constructor(showDownRanking) {
+        constructor(showDownRanking, moneyState) {
             super();
             this._showDownRanking = showDownRanking;
+            this._moneyState = moneyState;
         }
 
 
@@ -580,7 +594,6 @@ define((require) => {
     class PlayerJoinedRound extends PokerEvent{
         _player;
         _budget;
-
 
         constructor(player, budget) {
             super();
