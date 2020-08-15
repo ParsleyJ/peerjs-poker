@@ -212,7 +212,7 @@ define((require) => {
         }
 
         toString() {
-            return "(make and all-in)";
+            return "(make an all-in)";
         }
     }
 
@@ -456,7 +456,7 @@ define((require) => {
                 if (blinderPlayer.player.budget < this.game.rules.blind) {
                     // deregister player and restart phase
                     this.game.broadCastEvent(
-                        new events.PlayerDisqualified(blinderPlayer, "missing funds for blind")
+                        new events.PlayerDisqualified(blinderPlayer.player.name, "missing funds for blind")
                     );
                     this.game.deregisterPlayer(blinderPlayer);
                     continue; // restart phase
@@ -464,7 +464,7 @@ define((require) => {
                 if (smallBlinderPlayer.player.budget < this.game.rules.smallBlind) {
                     // deregister player and restart phase
                     this.game.broadCastEvent(
-                        new events.PlayerDisqualified(smallBlinderPlayer, "missing funds for small blind")
+                        new events.PlayerDisqualified(smallBlinderPlayer.player.name, "missing funds for small blind")
                     );
                     this.game.deregisterPlayer(smallBlinderPlayer);
                     continue; // restart phase
@@ -523,7 +523,7 @@ define((require) => {
 
         everyoneSpokeAtLeastOneTime() {
             return this.game.playerInterfaces.every(
-                pl => this.round.didPlayerFold(pl) || this._speakFlags.has(pl)
+                pl => this.round.didPlayerFold(pl) || this._speakFlags.has(pl) || this.round.didPlayerAllIn(pl)
             )
         }
 
@@ -544,8 +544,8 @@ define((require) => {
             for (let e of this._collectedBets.entries()) {
                 entries.push(e);
             }
-            return entries.length === this.game.playerInterfaces.length
-                && entries.every(e => !!(e[1] === -1 || e[1] === maxBet || this.round.didPlayerAllIn(e[0])));
+            return entries.length === this.game.playerInterfaces.length &&
+                entries.every(e => !!(e[1] === -1 || e[1] === maxBet || this.round.didPlayerAllIn(e[0])));
         }
 
 
@@ -608,12 +608,11 @@ define((require) => {
         async reachBetConsensus() {
             let playerTurnCounter = 1;
             let aPlayerDidBetOrCall = false;
-            // how to read this condition: exit when EITHER (everyone spoke AND we reached bet consensus)
+            // how to read this condition: EXIT when EITHER (everyone spoke/previously folded/previously alled-in
+            //                                          AND we reached bet consensus)
             //                                           OR someone won because everyone folded
             while (!(
-                (this.everyoneSpokeAtLeastOneTime() || this.everyoneFoldedOrAlledIn())
-                && this.reachedBetConsensus()
-                || this.someoneWonForEveryoneFolded
+                this.everyoneSpokeAtLeastOneTime() && this.reachedBetConsensus() || this.someoneWonForEveryoneFolded
             )) {
                 // get the next player that has to speak
                 let pl = (this.game.playerInterfaces)[playerTurnCounter % this.game.playerInterfaces.length]
