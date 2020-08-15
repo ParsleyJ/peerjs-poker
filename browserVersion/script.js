@@ -229,6 +229,10 @@ $(document).ready(() => {
                         switch (message.messageType) {
                             case "event": {
                                 let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
+                                //SPECTATOR
+                                /*if(event instanceof events.PlayersBeforeYou){
+                                    await serverDisconnect();
+                                }*/
                                 //ROUND ABOUT TO START
                                 if(event instanceof events.RoundAboutToStart){
                                     //Nothing
@@ -236,6 +240,28 @@ $(document).ready(() => {
                                 //ROUND STARTED
                                 if(event instanceof events.RoundStarted){
                                     document.getElementById("round_number").innerText = "ROUND "+event._roundID;
+                                    let players = event._players;
+                                    for(let p of players){
+                                        if(p === window.pl._playerName){
+                                            let joiningNow = true;
+                                            for(let i=1; i<=4; ++i){
+                                                let playerName = document.getElementById("player_name"+i).innerText;
+                                                if(playerName.includes(p) || (playerName.includes(p) && playerName.includes("FOLDED"))){
+                                                    joiningNow = false;
+                                                }
+                                            }
+                                            if(joiningNow){
+                                                for (let j = 1; j <= 4; ++j) {
+                                                    if(document.getElementById("player_name" + j).innerText === ""){
+                                                        document.getElementById("player_board" + j).style.display = "block";
+                                                        document.getElementById("player_name" + j).innerHTML = window.pl._playerName;
+                                                        document.getElementById("player_money" + j).innerHTML = window.pl._initialBudget;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                     if(event._roundID > 0){
                                         clearTable(event._players);
                                     }
@@ -450,8 +476,10 @@ $(document).ready(() => {
                     if (playerName.innerText === player) {
                         let card1 = document.getElementById("card1_" + i);
                         let card2 = document.getElementById("card2_" + i);
-                        card1.parentNode.removeChild(card1);
-                        card2.parentNode.removeChild(card2);
+                        if(card1 != null && card2 != null){
+                            card1.parentNode.removeChild(card1);
+                            card2.parentNode.removeChild(card2);
+                        }
                         document.getElementById("player_name" + i).innerText = "";
                         document.getElementById("player_money" + i).innerText = "";
                     }
@@ -656,8 +684,10 @@ $(document).ready(() => {
                             if (playerName.innerText === name) {
                                 let card1 = document.getElementById("card1_" + j);
                                 let card2 = document.getElementById("card2_" + j);
-                                card1.parentNode.removeChild(card1);
-                                card2.parentNode.removeChild(card2);
+                                if(card1 != null && card2 != null){
+                                    card1.parentNode.removeChild(card1);
+                                    card2.parentNode.removeChild(card2);
+                                }
                                 let playerBoard = document.getElementById("player_board" + j);
                                 let first = true;
                                 for(let c of hole){
@@ -693,8 +723,10 @@ $(document).ready(() => {
                     if (playerName.innerText.includes(player)) {
                         let card1 = document.getElementById("card1_" + i);
                         let card2 = document.getElementById("card2_" + i);
-                        card1.parentNode.removeChild(card1);
-                        card2.parentNode.removeChild(card2);
+                        if(card1 != null && card2 != null){
+                            card1.parentNode.removeChild(card1);
+                            card2.parentNode.removeChild(card2);
+                        }
                         let playerName = document.getElementById("player_name" + i);
                         playerName.innerText += " (FOLDED)";
                         playerName.style.fontWeight = "bold";
