@@ -1186,6 +1186,7 @@ define((require) => {
         _enteringPlayersQueue = [];
         _keyCounter = 0;
         _gameStarted = false;
+        _currentRound = null;
 
 
         askNewID() {
@@ -1267,6 +1268,14 @@ define((require) => {
             return this._gameStarted;
         }
 
+        get currentPlate(){
+            if(!!this._currentRound){
+                return this._currentRound._plate;
+            }else{
+                return 0;
+            }
+        }
+
         syphonPlayersFromQueue() {
             // adds any enqueued players, if they are present and while there are vacant seats
             let addedPlayers = 0;
@@ -1318,7 +1327,9 @@ define((require) => {
                 } while (this.playerInterfaces.length < this._minPlayersInGame);
                 let r = this.createRound();
                 this._gameStarted = true;
+                this._currentRound = r;
                 await r.executeRound();
+                this._currentRound = null;
                 this._gameStarted = false;
             }
         }

@@ -20,8 +20,8 @@ html {
     min-height: 100vh;
 }
 
-body{
-    magin:0;
+body {
+    margin: 0;
     background: forestgreen radial-gradient(forestgreen, darkgreen);
 }
 
@@ -34,15 +34,15 @@ input[type=text]:disabled {
 }
 
 button:disabled,
-button[disabled]{
+button[disabled] {
     border: 2px solid #999999;
     background: #cccccc;
     color: #666666;
 }
 
-.game_title{
+.game_title {
     color: white;
-    font-family: Carnevalee;
+    font-family: Carnevalee, serif;
     font-weight: normal;
     text-align: center;
     font-size: 8em;
@@ -50,9 +50,9 @@ button[disabled]{
     margin: auto 10px auto auto;
 }
 
-.round_number{
+.round_number {
     color: white;
-    font-family: Carnevalee;
+    font-family: Carnevalee, serif;
     font-weight: bold;
     text-align: center;
     font-size: 2em;
@@ -64,7 +64,7 @@ button[disabled]{
     right: 10px;
 }
 
-.logArea{
+.logArea {
     height: 100px;
     width: 50%;
     position: absolute;
@@ -74,12 +74,12 @@ button[disabled]{
     display: none;
     background-color: limegreen;
     color: darkgreen;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-size: 1em;
     overscroll-behavior: auto;
 }
 
-.container{
+.container {
     background-color: transparent;
     border-radius: 6px;
     height: 200px;
@@ -91,29 +91,31 @@ button[disabled]{
 }
 
 .startbtn {
-    box-shadow:inset 0px 1px 0px 0px #ffffff;
+    box-shadow: inset 0 1px 0 0 #ffffff;
     background: #ededed linear-gradient(to bottom, #ededed 5%, #dfdfdf 100%);
-    border-radius:6px;
-    border:1px solid #dcdcdc;
-    cursor:pointer;
-    color:#777777;
-    font-family:Arial;
-    font-size:28px;
-    font-weight:bold;
-    padding:16px 56px;
-    text-decoration:none;
-    text-shadow:0px 1px 0px #ffffff;
+    border-radius: 6px;
+    border: 1px solid #dcdcdc;
+    cursor: pointer;
+    color: #777777;
+    font-family: Arial, serif;
+    font-size: 28px;
+    font-weight: bold;
+    padding: 16px 56px;
+    text-decoration: none;
+    text-shadow: 0 1px 0 #ffffff;
     position: relative;
 }
+
 .startbtn:hover {
     background: #dfdfdf linear-gradient(to bottom, #dfdfdf 5%, #ededed 100%);
 }
+
 .startbtn:active {
-    position:relative;
-    top:1px;
+    position: relative;
+    top: 1px;
 }
 
-.form_container{
+.form_container {
     width: 400px;
     height: 200px;
     display: block;
@@ -122,14 +124,14 @@ button[disabled]{
 }
 
 /* Style inputs, select elements and textareas */
-input[type=text], select, textarea{
+input[type=text], select, textarea {
     width: 90%;
     padding: 12px;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
     resize: vertical;
-    font-family: Arial;
+    font-family: Arial, serif;
     float: right;
 }
 
@@ -140,28 +142,27 @@ label {
     color: white;
 }
 
-.money{
+.money {
     width: 90%;
     padding: 12px;
     resize: vertical;
-    float:right;
+    float: right;
 }
 
 /* Style the submit button */
 input[type=submit] {
-    box-shadow:inset 0px 1px 0px 0px #ffffff;
+    box-shadow: inset 0 1px 0 0 #ffffff;
     background: #ededed linear-gradient(to bottom, #ededed 5%, #dfdfdf 100%);
-    border-radius:6px;
-    border:1px solid #dcdcdc;
-    cursor:pointer;
-    color:#777777;
-    font-weight:bold;
-    font-size: 1em;
-    padding:10px 35px;
-    text-decoration:none;
-    text-shadow:0px 1px 0px #ffffff;
-    font-family:Arial;
+    border-radius: 6px;
+    border: 1px solid #dcdcdc;
     cursor: pointer;
+    color: #777777;
+    font-weight: bold;
+    font-size: 1em;
+    padding: 10px 35px;
+    text-decoration: none;
+    text-shadow: 0 1px 0 #ffffff;
+    font-family: Arial, serif;
     margin-top: 20px;
     float: right;
 }
@@ -202,7 +203,7 @@ input[type=submit] {
     }
 }
 
-.button_container{
+.button_container {
     position: relative;
     background-color: transparent;
     height: 140px;
@@ -210,105 +211,105 @@ input[type=submit] {
     display: none;
 }
 
-.betAmountInput{
+.betAmountInput {
     width: 60%;
     padding: 6px;
     resize: vertical;
-    float:right;
+    float: right;
     position: absolute;
     top: 10px;
     left: 110px;
 }
 
-.fold_button{
-    box-shadow:inset 0px 1px 0px 0px darkgreen;
+.fold_button {
+    box-shadow: inset 0 1px 0 0 darkgreen;
     background: green linear-gradient(to bottom, green 5%, limegreen 100%);
-    border-radius:6px;
-    border:2px solid black;
-    cursor:pointer;
+    border-radius: 6px;
+    border: 2px solid black;
+    cursor: pointer;
     color: white;
-    font-family:Arial;
-    font-size:15px;
-    font-weight:bold;
-    padding:5px 10px;
-    text-decoration:none;
-    text-shadow:0px 1px 0px darkgreen;
+    font-family: Arial, serif;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 5px 10px;
+    text-decoration: none;
+    text-shadow: 0 1px 0 darkgreen;
     width: 90px;
     position: absolute;
     top: 90px;
     left: 110px;
 }
 
-.leave_button{
-    box-shadow:inset 0px 1px 0px 0px darkgreen;
+.leave_button {
+    box-shadow: inset 0 1px 0 0 darkgreen;
     background: green linear-gradient(to bottom, green 5%, limegreen 100%);
-    border-radius:6px;
-    border:2px solid black;
-    cursor:pointer;
+    border-radius: 6px;
+    border: 2px solid black;
+    cursor: pointer;
     color: white;
-    font-family:Arial;
-    font-size:15px;
-    font-weight:bold;
-    padding:5px 10px;
-    text-decoration:none;
-    text-shadow:0px 1px 0px darkgreen;
+    font-family: Arial, serif;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 5px 10px;
+    text-decoration: none;
+    text-shadow: 0 1px 0 darkgreen;
     width: 90px;
     position: absolute;
     top: 90px;
     left: 10px;
 }
 
-.call_button{
-    box-shadow:inset 0px 1px 0px 0px darkgreen;
+.call_button {
+    box-shadow: inset 0 1px 0 0 darkgreen;
     background: green linear-gradient(to bottom, green 5%, limegreen 100%);
-    border-radius:6px;
-    border:2px solid black;
-    cursor:pointer;
+    border-radius: 6px;
+    border: 2px solid black;
+    cursor: pointer;
     color: white;
-    font-family:Arial;
-    font-size:15px;
-    font-weight:bold;
-    padding:5px 10px;
-    text-decoration:none;
-    text-shadow:0px 1px 0px darkgreen;
+    font-family: Arial, serif;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 5px 10px;
+    text-decoration: none;
+    text-shadow: 0 1px 0 darkgreen;
     width: 90px;
     position: absolute;
     top: 50px;
     left: 10px;
 }
 
-.check_button{
-    box-shadow:inset 0px 1px 0px 0px darkgreen;
+.check_button {
+    box-shadow: inset 0 1px 0 0 darkgreen;
     background: green linear-gradient(to bottom, green 5%, limegreen 100%);
-    border-radius:6px;
-    border:2px solid black;
-    cursor:pointer;
+    border-radius: 6px;
+    border: 2px solid black;
+    cursor: pointer;
     color: white;
-    font-family:Arial;
-    font-size:15px;
-    font-weight:bold;
-    padding:5px 10px;
-    text-decoration:none;
-    text-shadow:0px 1px 0px darkgreen;
+    font-family: Arial, serif;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 5px 10px;
+    text-decoration: none;
+    text-shadow: 0 1px 0 darkgreen;
     width: 90px;
     position: absolute;
     top: 50px;
     left: 110px;
 }
 
-.allin_button{
-    box-shadow:inset 0px 1px 0px 0px darkred;
+.allin_button {
+    box-shadow: inset 0 1px 0 0 darkred;
     background: red linear-gradient(to bottom, darkred 5%, red 100%);
-    border-radius:6px;
-    border:2px solid black;
-    cursor:pointer;
+    border-radius: 6px;
+    border: 2px solid black;
+    cursor: pointer;
     color: white;
-    font-family:Arial;
-    font-size:15px;
-    font-weight:bold;
-    padding:5px 10px;
-    text-decoration:none;
-    text-shadow:0px 1px 0px red;
+    font-family: Arial, serif;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 5px 10px;
+    text-decoration: none;
+    text-shadow: 0 1px 0 red;
     width: 100px;
     height: 70px;
     position: absolute;
@@ -316,28 +317,28 @@ input[type=submit] {
     left: 210px;
 }
 
-.bet_button{
-    box-shadow:inset 0px 1px 0px 0px darkgreen;
+.bet_button {
+    box-shadow: inset 0 1px 0 0 darkgreen;
     background: green linear-gradient(to bottom, green 5%, limegreen 100%);
-    border-radius:6px;
-    border:2px solid black;
-    cursor:pointer;
+    border-radius: 6px;
+    border: 2px solid black;
+    cursor: pointer;
     color: white;
-    font-family:Arial;
-    font-size:15px;
-    font-weight:bold;
-    padding:5px 10px;
-    text-decoration:none;
-    text-shadow:0px 1px 0px darkgreen;
+    font-family: Arial, serif;
+    font-size: 15px;
+    font-weight: bold;
+    padding: 5px 10px;
+    text-decoration: none;
+    text-shadow: 0 1px 0 darkgreen;
     width: 90px;
     position: absolute;
     top: 10px;
     left: 10px;
 }
 
-.phase_name{
+.phase_name {
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -347,10 +348,10 @@ input[type=submit] {
     top: 5px;
 }
 
-.plate{
+.plate {
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -358,7 +359,7 @@ input[type=submit] {
     padding: 10px;
 }
 
-.deck_image{
+.deck_image {
     border: none;
     background: none;
     height: 180px;
@@ -368,9 +369,9 @@ input[type=submit] {
     right: 10px;
 }
 
-.cards_board{
+.cards_board {
     border: none;
-    background-color:darkgreen;
+    background-color: darkgreen;
     height: 210px;
     width: auto;
     margin-left: 10px;
@@ -380,20 +381,20 @@ input[type=submit] {
     position: relative;
 }
 
-.player_board1{
+.player_board1 {
     background-color: darkgreen;
     height: 200px;
     width: 49%;
     margin-bottom: 10px;
     display: none;
-    float:left;
+    float: left;
     position: relative;
 }
 
-.player_name1{
+.player_name1 {
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -401,17 +402,17 @@ input[type=submit] {
     padding: 10px;
 }
 
-.chips1{
+.chips1 {
     border: none;
     height: 38px;
     width: 60px;
     float: right;
 }
 
-.player_money1{
+.player_money1 {
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -419,7 +420,7 @@ input[type=submit] {
     padding: 10px;
 }
 
-.player_board2{
+.player_board2 {
     background-color: darkgreen;
     height: 200px;
     width: 49%;
@@ -429,10 +430,10 @@ input[type=submit] {
     position: relative;
 }
 
-.player_name2{
+.player_name2 {
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -440,17 +441,17 @@ input[type=submit] {
     padding: 10px;
 }
 
-.chips2{
+.chips2 {
     border: none;
     height: 38px;
     width: 60px;
     float: right;
 }
 
-.player_money2{
+.player_money2 {
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -458,20 +459,20 @@ input[type=submit] {
     padding: 10px;
 }
 
-.player_board3{
+.player_board3 {
     background-color: darkgreen;
     height: 200px;
     width: 49%;
     margin-bottom: 10px;
     display: none;
-    float:left;
+    float: left;
     position: relative;
 }
 
-.player_name3{
+.player_name3 {
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -480,17 +481,17 @@ input[type=submit] {
     padding: 10px;
 }
 
-.chips3{
+.chips3 {
     border: none;
     height: 38px;
     width: 60px;
     float: right;
 }
 
-.player_money3{
+.player_money3 {
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -499,20 +500,20 @@ input[type=submit] {
     padding: 10px;
 }
 
-.player_board4{
+.player_board4 {
     background-color: darkgreen;
     height: 200px;
     width: 49%;
     margin-bottom: 10px;
     display: none;
-    float:right;
+    float: right;
     position: relative;
 }
 
-.player_name4{
+.player_name4 {
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -520,17 +521,28 @@ input[type=submit] {
     padding: 10px;
 }
 
-.chips4{
+.player_notif{
+    background: radial-gradient(limegreen, transparent 70%);
+    color: white;
+    font-family: Arial, serif;
+    font-weight: normal;
+    text-align: center;
+    font-size: 1em;
+    float: left;
+    padding: 10px;
+}
+
+.chips4 {
     border: none;
     height: 38px;
     width: 60px;
     float: right;
 }
 
-.player_money4{
+.player_money4 {
     background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial;
+    font-family: Arial, serif;
     font-weight: normal;
     text-align: center;
     font-size: 1em;
@@ -538,14 +550,14 @@ input[type=submit] {
     padding: 10px;
 }
 
-.card_back{
+.card_back {
     height: 150px;
     width: 110px;
     position: absolute;
     bottom: 10px;
 }
 
-.card{
+.card {
     padding: 10px;
     border: solid 1px #808080;
     background-color: white;
@@ -553,7 +565,7 @@ input[type=submit] {
     border-radius: 10px;
     font-size: 14pt;
     text-align: center;
-    color:black;
+    color: black;
     margin: 3px;
     object-position: center;
     height: 150px;
@@ -562,51 +574,44 @@ input[type=submit] {
     position: absolute;
 }
 
-.card .value{
-    font-size:15pt;
+.card .value {
+    font-size: 15pt;
     font-family: sans-serif;
 }
 
-.card .suit
-{
+.card .suit {
     background-image: url('img/card.png');
     height: 100px;
     width: 90px;
 }
 
-.card .diamonds
-{
+.card .diamonds {
     background-position-y: 100px;
 }
 
-.card .hearts
-{
+.card .hearts {
     background-position-x: 90px;
 }
 
-.card .clubs
-{
-    background-position-x:90px;
-    background-position-y:100px;
+.card .clubs {
+    background-position-x: 90px;
+    background-position-y: 100px;
 }
 
 
-/* TODO */
 .floatingDiv {
-    position:absolute;
-    z-index:10000;
-    left:33%;
-    top:250px;
-    width:33%;
-    background-color:#FFF;
-    min-width:217px;
+    position: absolute;
+    z-index: 10000;
+    left: 33%;
+    top: 250px;
+    width: 33%;
+    background-color: #FFF;
+    min-width: 217px;
     text-align: left;
     border-radius: 10px 10px;
-    border:solid;
-    border-width:1px;
-    border-color:#000;
-    vertical-align:top;
-    padding:10px;
+    border: 1px solid #000;
+    vertical-align: top;
+    padding: 10px;
 
     background-image: -ms-linear-gradient(top, #CCCCCC 0%, #FFFFFF 25px, #FFFFFF 100%);
     background-image: -moz-linear-gradient(top, #CCCCCC 0%, #FFFFFF 25px, #FFFFFF 100%);
@@ -614,6 +619,6 @@ input[type=submit] {
     background-image: -webkit-linear-gradient(top, #CCCCCC 0%, #FFFFFF 25px, #FFFFFF 100%);
     background-image: linear-gradient(to bottom, #CCCCCC 0%, #FFFFFF 25px, #FFFFFF 100%);
 
-    box-shadow:3px 3px 5px #003;
+    box-shadow: 3px 3px 5px #003;
     filter: progid:DXImageTransform.Microsoft.Shadow(color='#000033', Direction=145, Strength=3);
 }

@@ -2,32 +2,58 @@ $(document).ready(() => {
     require(["./scripts/remotePlayer", "./scripts/pokerEvents", "./scripts/poker", "./scripts/Card"],
         (remotePlayer, events, poker) => {
 
-            window.openAlert = function(id){
+            window.openAlert = function (id) {
                 "use strict";
                 document.getElementById(id).style.visibility = 'visible';
             }
-            window.closeAlert = function (id){
+            window.closeAlert = function (id) {
                 "use strict";
                 document.getElementById(id).style.visibility = 'hidden';
             }
+
             function myAlert(title, message) {
                 "use strict";
                 document.getElementById("msgBox").innerHTML = "<a href=\"javascript:closeAlert('msgBox')\" style=\"float:right\">" +
                     "<p>[X]</p>" +
-                    "</a><h2 style=\"text-align:center; margin-top:0;\">" + title + "</h2><hr><p align=\"left\">" + message + "</p>";
+                    "</a><h2 style=\"text-align:center; margin-top:0; font-family: Arial, serif;\">"
+                    + title +
+                    "</h2><hr>" +
+                    "<p style=\"text-align:left; font-family: Arial, serif;\">"
+                    + message +
+                    "</p>";
                 openAlert("msgBox");
             }
 
-            function puts(str){
+            function playerBoardNotifA(boardNum, text, time) {
+                let $playerNotifA = document.getElementById("player_notifA"+boardNum);
+                $playerNotifA.innerText = text;
+                $playerNotifA.style.visibility = "visible";
+                setTimeout(() => {
+                    $playerNotifA.innerText = "";
+                    $playerNotifA.style.visibility = "hidden";
+                }, time);
+            }
+
+            function playerBoardNotifB(boardNum, text, time) {
+                let $playerNotifB = document.getElementById("player_notifB"+boardNum);
+                $playerNotifB.innerText = text;
+                $playerNotifB.style.visibility = "visible";
+                setTimeout(() => {
+                    $playerNotifB.innerText = "";
+                    $playerNotifB.style.visibility = "hidden";
+                }, time);
+            }
+
+            function puts(str) {
                 let logArea = document.getElementById("logArea");
-                if(str === undefined){
+                if (str === undefined) {
                     console.log();
                     logArea.textContent += "\n";
                     logArea.scrollTop = logArea.scrollHeight;
 
-                }else{
+                } else {
                     console.log(str);
-                    logArea.textContent += str+"\n";
+                    logArea.textContent += str + "\n";
                     logArea.scrollTop = logArea.scrollHeight;
                 }
 
@@ -61,84 +87,66 @@ $(document).ready(() => {
                     $("#bet_button").click(() => {
                         let betAmount = document.getElementById("betAmountInput").value;
                         toggleButtons(possibleMoves, false);
-                        resolve("bet "+ betAmount)
+                        resolve("bet " + betAmount)
                     })
                 })
             }
 
             function toggleButtons(possibleMoves, enable) {
-                for(let m of possibleMoves){
-                    if(m === "bet"){
+                for (let m of possibleMoves) {
+                    if (m === "bet") {
                         let button = document.getElementById("bet_button");
-                        if(enable){
-                            button.disabled = false;
-                        }
-                        else{
-                            button.disabled = true;
-                        }
-                    }
-                    else if(m === "raise"){
+                        button.disabled = !enable;
+                    } else if (m === "raise") {
                         let button = document.getElementById("bet_button");
-                        if(enable){
+                        if (enable) {
                             button.innerText = "RAISE";
                             button.disabled = false;
-                        }
-                        else{
+                        } else {
                             button.innerText = "BET";
                             button.disabled = true;
                         }
-                    }
-                    else if(m === "call"){
+                    } else if (m === "call") {
                         let button = document.getElementById("call_button");
-                        if(enable){
+                        if (enable) {
                             button.disabled = false;
-                        }
-                        else{
+                        } else {
                             button.disabled = true;
                         }
-                    }
-                    else if(m === "check"){
+                    } else if (m === "check") {
                         let button = document.getElementById("check_button");
-                        if(enable){
+                        if (enable) {
                             button.disabled = false;
-                        }
-                        else{
+                        } else {
                             button.disabled = true;
                         }
-                    }
-                    else if(m === "fold"){
+                    } else if (m === "fold") {
                         let button = document.getElementById("fold_button");
-                        if(enable){
+                        if (enable) {
                             button.disabled = false;
-                        }
-                        else{
+                        } else {
                             button.disabled = true;
                         }
-                    }
-                    else if(m === "leave"){
+                    } else if (m === "leave") {
                         let button = document.getElementById("leave_button");
-                        if(enable){
+                        if (enable) {
                             button.disabled = false;
-                        }
-                        else{
+                        } else {
                             button.disabled = true;
                         }
-                    }
-                    else if(m === "allin"){
+                    } else if (m === "allin") {
                         let button = document.getElementById("allin_button");
-                        if(enable){
+                        if (enable) {
                             button.disabled = false;
-                        }
-                        else{
+                        } else {
                             button.disabled = true;
                         }
                     }
                 }
                 let betAmount = document.getElementById("betAmountInput");
-                if(enable){
+                if (enable) {
                     betAmount.disabled = false;
-                }
-                else{
+                } else {
                     betAmount.disabled = true;
                 }
             }
@@ -163,7 +171,8 @@ $(document).ready(() => {
                     // this._peer = new Peer(clientID);
                 }
 
-                register(to, connectionOpenCallback, connectionClosedCallback=() => {}) {
+                register(to, connectionOpenCallback, connectionClosedCallback = () => {
+                }) {
                     puts("registering to " + to + " ...");
                     let registerConnection = this._peer.connect(to);
 
@@ -203,7 +212,7 @@ $(document).ready(() => {
                                 await this.handleMessage(message);
                             }
                         })
-                        this._connection.on("close", () =>{
+                        this._connection.on("close", () => {
                             connectionClosedCallback();
                         })
                     })
@@ -212,15 +221,15 @@ $(document).ready(() => {
                 async* extractMessages() {
                     while (true) {
                         let message = await this._messageQueue.dequeue();
-                        if(message!==undefined){
+                        if (message !== undefined) {
                             yield message;
                         }
                     }
                 }
 
-                disconnectAndDestroy(){
+                disconnectAndDestroy() {
                     this._connection.close();
-                    if(!!this._peer && !this._peer.destroyed){
+                    if (!!this._peer && !this._peer.destroyed) {
                         this._peer.destroy();
                     }
                 }
@@ -249,25 +258,25 @@ $(document).ready(() => {
                                     await serverDisconnect();
                                 }*/
                                 //ROUND ABOUT TO START
-                                if(event instanceof events.RoundAboutToStart){
+                                if (event instanceof events.RoundAboutToStart) {
                                     //Nothing
                                 }
                                 //ROUND STARTED
-                                if(event instanceof events.RoundStarted){
-                                    document.getElementById("round_number").innerText = "ROUND "+event._roundID;
+                                if (event instanceof events.RoundStarted) {
+                                    document.getElementById("round_number").innerText = "ROUND " + event._roundID;
                                     let players = event._players;
-                                    for(let p of players){
-                                        if(p === window.pl._playerName){
+                                    for (let p of players) {
+                                        if (p === window.pl._playerName) {
                                             let joiningNow = true;
-                                            for(let i=1; i<=4; ++i){
-                                                let playerName = document.getElementById("player_name"+i).innerText;
-                                                if(playerName.includes(p) || (playerName.includes(p) && playerName.includes("FOLDED"))){
+                                            for (let i = 1; i <= 4; ++i) {
+                                                let playerName = document.getElementById("player_name" + i).innerText;
+                                                if (playerName.includes(p) || (playerName.includes(p) && playerName.includes("FOLDED"))) {
                                                     joiningNow = false;
                                                 }
                                             }
-                                            if(joiningNow){
+                                            if (joiningNow) {
                                                 for (let j = 1; j <= 4; ++j) {
-                                                    if(document.getElementById("player_name" + j).innerText === ""){
+                                                    if (document.getElementById("player_name" + j).innerText === "") {
                                                         document.getElementById("player_board" + j).style.display = "block";
                                                         document.getElementById("player_name" + j).innerHTML = window.pl._playerName;
                                                         document.getElementById("player_money" + j).innerHTML = window.pl._initialBudget;
@@ -277,115 +286,108 @@ $(document).ready(() => {
                                             }
                                         }
                                     }
-                                    if(event._roundID > 0){
+                                    if (event._roundID > 0) {
                                         clearTable(event._players);
                                     }
                                 }
                                 //DISTRIBUTION OF CARDS
-                                else if(event instanceof events.CardsDealt){
-                                        let cards = event._cards;
-                                        let first = true;
-                                        for(let card of cards){
-                                            renderHandCard(this, card._face, translateSuit(card._suit), first);
-                                            first = false;
-                                        }
+                                else if (event instanceof events.CardsDealt) {
+                                    let cards = event._cards;
+                                    let first = true;
+                                    for (let card of cards) {
+                                        renderHandCard(this, card._face, translateSuit(card._suit), first);
+                                        first = false;
+                                    }
                                 }
                                 //FOLDING
-                                else if(event instanceof events.FoldDone){
+                                else if (event instanceof events.FoldDone) {
                                     fold(event._player);
                                 }
                                 //FLOP, TURN, RIVER PHASES
-                                else if(event instanceof events.PhaseStarted){
+                                else if (event instanceof events.PhaseStarted) {
                                     let phase = event._phaseName;
                                     //Questo in futuro potrebbe essere nella console di log
                                     document.getElementById("phase_name").innerText = event._phaseName;
-                                    if(phase === "Flop betting"){
+                                    if (phase === "Flop betting") {
                                         renderTable(phase, event._table, event._plate);
-                                    }
-                                    else if(phase === "Turn betting"){
+                                    } else if (phase === "Turn betting") {
                                         renderTable(phase, event._table, event._plate);
-                                    }
-                                    else if(phase === "River betting"){
+                                    } else if (phase === "River betting") {
                                         renderTable(phase, event._table, event._plate);
-                                    }
-                                    else if(phase === "Blind placements"){
+                                    } else if (phase === "Blind placements") {
                                         //Already handled in BlindsPlaced
-                                    }
-                                    else if(phase === "Dealing cards"){
+                                    } else if (phase === "Dealing cards") {
                                         //Already handled in CardsDealt
-                                    }
-                                    else if(phase === "Pre flop betting"){
+                                    } else if (phase === "Pre flop betting") {
                                         //Already handled in UpdateBet
-                                    }
-                                    else if(phase === "Showdown"){
+                                    } else if (phase === "Showdown") {
                                         //Already handled in ShowDownResults
                                     }
                                 }
                                 //BLINDDONE
-                                else if(event instanceof events.BlindsPlaced){
+                                else if (event instanceof events.BlindsPlaced) {
                                     placeBlinds(event._blindPlayer, event._smallBlindPlayer);
                                 }
                                 //CHECKDONE
-                                else if(event instanceof events.CheckDone){
-                                    myAlert("Notification","PLAYER "+event._player+" CHECKS");
+                                else if (event instanceof events.CheckDone) {
+                                    myAlert("Notification", "PLAYER " + event._player + " CHECKS");
                                 }
                                 //CALLDONE
-                                else if(event instanceof events.CallDone){
-                                    myAlert("Notification","PLAYER "+event._player+" CALLS ("+event._betAmount+")");
+                                else if (event instanceof events.CallDone) {
+                                    myAlert("Notification", "PLAYER " + event._player + " CALLS (" + event._betAmount + ")");
                                     updateBet(event._player, event._betAmount);
                                 }
                                 //BETDONE
-                                else if(event instanceof events.BetDone){
+                                else if (event instanceof events.BetDone) {
                                     updateBet(event._player, event._betAmount);
                                 }
                                 //ALL IN
-                                else if(event instanceof events.AllInDone){
-                                    myAlert("Notification","PLAYER "+ event._player+" GOES ALL IN!");
+                                else if (event instanceof events.AllInDone) {
+                                    myAlert("Notification", "PLAYER " + event._player + " GOES ALL IN!");
                                     updateBet(event._player, event._howMuch);
                                 }
                                 //INSUFFICIENT FUNDS TO BET
-                                else if(event instanceof events.InsufficientFundsToBet){
-                                    myAlert("Notification","You cannot bet:\nYOUR MONEY: "+event._money+"\nMONEY NEEDED: "+event._moneyNeeded);
+                                else if (event instanceof events.InsufficientFundsToBet) {
+                                    myAlert("Notification", "You cannot bet:\nYOUR MONEY: " + event._money + "\nMONEY NEEDED: " + event._moneyNeeded);
                                 }
                                 //SHOWDOWN RESULTS
-                                else if(event instanceof events.ShowDownResults){
+                                else if (event instanceof events.ShowDownResults) {
                                     showDownResults(event._showDownRanking);
                                     myAlert("Notification", event.toString());
                                 }
                                 //PLAYER WON ROUND
-                                else if(event instanceof events.PlayerWonRound){
+                                else if (event instanceof events.PlayerWonRound) {
                                     playerWonRound(event);
                                 }
                                 //PLAYER LEFT
-                                else if(event instanceof events.PlayerLeft){
+                                else if (event instanceof events.PlayerLeft) {
                                     playerLeft(event._player);
                                 }
                                 //PLAYER JOINED ROUND
-                                else if(event instanceof events.PlayerJoinedRound){
+                                else if (event instanceof events.PlayerJoinedRound) {
                                     playerJoined(event._player, event._budget);
                                 }
                                 //AWAITING FOR PLAYERS
-                                else if(event instanceof events.AwaitingForPlayers){
+                                else if (event instanceof events.AwaitingForPlayers) {
                                     let status = await window.pl.gameStatus();
                                     let players = status.players;
-                                    let playerNames = new Array();
-                                    for(let i=0; i<players.length; ++i){
+                                    let playerNames = [];
+                                    for (let i = 0; i < players.length; ++i) {
                                         playerNames.push(players[i].name);
                                     }
                                     clearTable(playerNames);
                                 }
                                 //PEER DISCONNECTED
-                                else if(event instanceof events.PeerDisconnected){
-                                    myAlert("Notification","PEER DISCONNECTED = PLAYER "+event._playerName);
+                                else if (event instanceof events.PeerDisconnected) {
+                                    myAlert("Notification", "PEER DISCONNECTED = PLAYER " + event._playerName);
                                     playerLeft(event._playerName);
                                 }
                                 //PLAYER DISQUALIFIED
-                                else if(event instanceof events.PlayerDisqualified){
-                                    myAlert("Notification","PLAYER "+event._player+" DISQUALIFIED, REASON: "+event._reason);
-                                    if(event._player === window.pl._playerName){
+                                else if (event instanceof events.PlayerDisqualified) {
+                                    myAlert("Notification", "PLAYER " + event._player + " DISQUALIFIED, REASON: " + event._reason);
+                                    if (event._player === window.pl._playerName) {
                                         await leave();
-                                    }
-                                    else{
+                                    } else {
                                         playerLeft(event._player);
                                     }
                                 }
@@ -423,7 +425,7 @@ $(document).ready(() => {
                     // puts(" - " + formattedMoves.join("\n - "))
 
                     let input = null;
-                    while(input === null||input===undefined) {
+                    while (input === null || input === undefined) {
                         //input = await prompt("What do you want to do? (required minimum bet =" + decisionInput._minBet + "): ", "");
                         document.getElementById("betAmountInput").value = parseInt(decisionInput._minBet);
                         input = await prepareAndAwaitButtons(decisionInput._possibleMoves);
@@ -431,7 +433,7 @@ $(document).ready(() => {
                     this.sendData({messageType: "decision", decision: input});
                 }
 
-                async gameStatus(){
+                async gameStatus() {
                     return await this.request("gameStatus");
                     // return {
                     //     roundActive:true,
@@ -441,12 +443,16 @@ $(document).ready(() => {
                     //     }]
                     // }
                 }
+
+                async getPlateAmount() {
+                    return (await this.request("plate")).plate
+                }
             }
 
             async function leave() {
                 let status = await window.pl.gameStatus();
                 let players = status.players;
-                let playerNames = new Array();
+                let playerNames = [];
                 for (let i = 0; i < players.length; ++i) {
                     playerNames.push(players[i].name);
                 }
@@ -471,14 +477,14 @@ $(document).ready(() => {
             }
 
             function playerJoined(playerNickname, playerBudget) {
-                if(playerNickname !== window.pl._playerName){
+                if (playerNickname !== window.pl._playerName) {
                     for (let i = 1; i <= 4; ++i) {
                         let playerName = document.getElementById("player_name" + i);
                         let playerMoney = document.getElementById("player_money" + i);
                         if (playerName.innerText === "") {
                             document.getElementById("player_board" + i).style.display = "block";
                             playerName.innerText = playerNickname;
-                            playerMoney.innerText = ""+playerBudget;
+                            playerMoney.innerText = "" + playerBudget;
                             break;
                         }
                     }
@@ -491,7 +497,7 @@ $(document).ready(() => {
                     if (playerName.innerText === player) {
                         let card1 = document.getElementById("card1_" + i);
                         let card2 = document.getElementById("card2_" + i);
-                        if(card1 != null && card2 != null){
+                        if (card1 != null && card2 != null) {
                             card1.parentNode.removeChild(card1);
                             card2.parentNode.removeChild(card2);
                         }
@@ -506,15 +512,21 @@ $(document).ready(() => {
                     let playerName = document.getElementById("player_name" + j);
                     if (playerName.innerText === blind) {
                         let currentMoney = document.getElementById("player_money" + j).innerText;
-                        document.getElementById("player_money" + j).innerText = (parseInt(currentMoney)-100).toString();
-                    }
-                    else if (playerName.innerText === smallblind) {
+                        document.getElementById("player_money" + j).innerText = (parseInt(currentMoney) - 100).toString();
+                    } else if (playerName.innerText === smallblind) {
                         let currentMoney = document.getElementById("player_money" + j).innerText;
-                        document.getElementById("player_money" + j).innerText = (parseInt(currentMoney)-50).toString();
+                        document.getElementById("player_money" + j).innerText = (parseInt(currentMoney) - 50).toString();
                     }
                 }
+                /*
                 let currentPlate = document.getElementById("plate").innerText;
                 document.getElementById("plate").innerText = (parseInt(currentPlate) + 150).toString();
+                 */
+                window.pl.getPlateAmount().then(plate => {
+                    document.getElementById("plate").innerText = "" + plate;
+                })
+
+
             }
 
             function clearTable(players) {
@@ -523,25 +535,25 @@ $(document).ready(() => {
                 let flop = document.getElementById("flop");
                 let turn = document.getElementById("turn");
                 let river = document.getElementById("river");
-                if(flop != null){
+                if (flop != null) {
                     cards_board.removeChild(flop);
                 }
-                if(turn != null){
+                if (turn != null) {
                     cards_board.removeChild(turn);
                 }
-                if(river != null){
+                if (river != null) {
                     cards_board.removeChild(river);
                 }
 
-                for(let i=1; i<=players.length; ++i){
+                for (let i = 1; i <= players.length; ++i) {
                     let card1 = document.getElementById("card1_" + i);
                     let card2 = document.getElementById("card2_" + i);
-                    if(card1 != null && card2 != null){
+                    if (card1 != null && card2 != null) {
                         card1.parentNode.removeChild(card1);
                         card2.parentNode.removeChild(card2);
                     }
                     let playerName = document.getElementById("player_name" + i);
-                    for(let p of players) {
+                    for (let p of players) {
                         if (playerName.innerText.includes(p)) {
                             playerName.innerText = p;
                             playerName.style.fontWeight = "normal";
@@ -552,58 +564,63 @@ $(document).ready(() => {
             }
 
             function playerWonRound(event) {
-                myAlert("Notification","PLAYER "+event._player+" WON "+event._howMuch+" THIS ROUND!");
-                for(let i=1; i <= 4; ++i){
+                myAlert("Notification", "PLAYER " + event._player + " WON " + event._howMuch + " THIS ROUND!");
+                for (let i = 1; i <= 4; ++i) {
                     let playerName = document.getElementById("player_name" + i);
-                    if(playerName.innerText === event._player){
+                    if (playerName.innerText === event._player) {
+                        playerBoardNotifB(i, "(WINNER)", 10_000);
                         let currentMoney = document.getElementById("player_money" + i).innerText;
                         let newMoney = parseInt(currentMoney) + parseInt(event._howMuch);
                         document.getElementById("player_money" + i).innerText = newMoney.toString();
                     }
                 }
-                document.getElementById("plate").innerText = "0";
+                // document.getElementById("plate").innerText = "0";
+                window.pl.getPlateAmount().then(plate => {
+                    document.getElementById("plate").innerText = "" + plate;
+                })
             }
 
+
             function updateBet(player, betAmount) {
-                if(betAmount === "") {
+                if (betAmount === "") {
                     betAmount = "0";
                 }
-                for(let i=1; i <= 4; ++i){
+                for (let i = 1; i <= 4; ++i) {
                     let playerName = document.getElementById("player_name" + i);
-                    if(playerName.innerText.includes(player)){
+                    if (playerName.innerText.includes(player)) {
                         let currentMoney = document.getElementById("player_money" + i).innerText;
                         let newMoney = parseInt(currentMoney) - parseInt(betAmount);
-                        if(newMoney<0){
+                        if (newMoney < 0) {
                             newMoney = 0;
                         }
                         document.getElementById("player_money" + i).innerText = newMoney.toString();
                     }
                 }
+                /*
                 let currentPlate = document.getElementById("plate").innerText;
-                let newPlate = parseInt(currentPlate) + parseInt(betAmount);
-                document.getElementById("plate").innerText = newPlate;
+                document.getElementById("plate").innerText = "" + (parseInt(currentPlate) + parseInt(betAmount));
+                 */
+                window.pl.getPlateAmount().then(plate => {
+                    document.getElementById("plate").innerText = "" + plate;
+                })
             }
 
             function translateFaceValue(value) {
-                if(value === 1) {
+                if (value === 1) {
                     return "A";
-                }
-                else if(value === 11) {
+                } else if (value === 11) {
                     return "J";
-                }
-                else if(value === 12) {
+                } else if (value === 12) {
                     return "Q";
-                }
-                else if(value === 13) {
+                } else if (value === 13) {
                     return "K";
-                }
-                else
+                } else
                     return value;
             }
 
             function translateSuit(suit) {
                 let suits = ["spades", "clubs", "diamonds", "hearts"];
-                return suits[suit-1];
+                return suits[suit - 1];
             }
 
             function renderTable(phase, cards, plate) {
@@ -615,17 +632,17 @@ $(document).ready(() => {
                 value.className = "value";
 
                 let c;
-                if(phase === "Flop betting"){
+                if (phase === "Flop betting") {
                     c = cards[0];
                     card.style.right = "230px";
                     card.id = "flop";
                 }
-                if(phase === "Turn betting"){
+                if (phase === "Turn betting") {
                     c = cards[1];
                     card.style.right = "380px";
                     card.id = "turn";
                 }
-                if(phase === "River betting"){
+                if (phase === "River betting") {
                     c = cards[2];
                     card.style.right = "530px";
                     card.id = "river";
@@ -639,12 +656,15 @@ $(document).ready(() => {
                 card.appendChild(suit);
                 table.appendChild(card);
                 //document.getElementById("plate").innerText = plate;
+                window.pl.getPlateAmount().then(plate => {
+                    document.getElementById("plate").innerText = "" + plate;
+                })
             }
 
             function renderHandCard(player, number, suitVal, first) {
-                for(let i=1; i <= 4; ++i){
+                for (let i = 1; i <= 4; ++i) {
                     let playerName = document.getElementById("player_name" + i);
-                    if(playerName.innerText === player._playerName){
+                    if (playerName.innerText === player._playerName) {
                         let rightBoard = document.getElementById("player_board" + i);
                         let card = document.createElement("div");
                         let value = document.createElement("div");
@@ -653,34 +673,30 @@ $(document).ready(() => {
                         value.className = "value";
                         suit.className = "suit " + suitVal;
                         value.innerHTML = translateFaceValue(number);
-                        if(first){
+                        if (first) {
                             card.style.left = "50px";
-                            card.id = "card1_"+i;
-                        }
-                        else{
+                            card.id = "card1_" + i;
+                        } else {
                             card.style.right = "50px";
-                            card.id = "card2_"+i;
+                            card.id = "card2_" + i;
                         }
                         card.appendChild(value);
                         card.appendChild(suit);
                         rightBoard.appendChild(card);
-                    }
-                    else{
-                        if(playerName.innerText.length > 0){
+                    } else {
+                        if (playerName.innerText.length > 0) {
                             let opponentBoard = document.getElementById("player_board" + i);
                             let card_back = document.createElement("img");
                             card_back.className = "card_back";
-                            if(first){
-                                card_back.id = "card1_"+i;
-                            }
-                            else{
-                                card_back.id = "card2_"+i;
+                            if (first) {
+                                card_back.id = "card1_" + i;
+                            } else {
+                                card_back.id = "card2_" + i;
                             }
                             card_back.src = "img/card_back.png";
-                            if(first){
+                            if (first) {
                                 card_back.style.left = "50px";
-                            }
-                            else{
+                            } else {
                                 card_back.style.right = "50px";
                             }
                             opponentBoard.appendChild(card_back);
@@ -690,22 +706,35 @@ $(document).ready(() => {
             }
 
             function showDownResults(results) {
-                for(let i=0; i<results.length; ++i){
+                for (let i = 0; i < results.length; ++i) {
+                    //showing patterns:)
                     let name = results[i].player;
-                    if(name !== window.pl._playerName){
+                    for(let j = 1; j <= 4; ++j){
+                        let boardName = document.getElementById("player_name" + j).innerText;
+                        console.log("boardName: " + boardName);
+                        console.log("playerName: " + name);
+                        if(name === boardName){
+                            console.log("notifiying_pattern on board: "+j)
+                            playerBoardNotifA(j, results[i].pattern._handPatternType, 10_000);
+                        }
+                    }
+
+
+                    //showing cards:
+                    if (name !== window.pl._playerName) {
                         let hole = results[i].hole;
-                        for(let j=1; j<=4; ++j){
+                        for (let j = 1; j <= 4; ++j) {
                             let playerName = document.getElementById("player_name" + j);
                             if (playerName.innerText === name) {
                                 let card1 = document.getElementById("card1_" + j);
                                 let card2 = document.getElementById("card2_" + j);
-                                if(card1 != null && card2 != null){
+                                if (card1 != null && card2 != null) {
                                     card1.parentNode.removeChild(card1);
                                     card2.parentNode.removeChild(card2);
                                 }
                                 let playerBoard = document.getElementById("player_board" + j);
                                 let first = true;
-                                for(let c of hole){
+                                for (let c of hole) {
                                     let card = document.createElement("div");
                                     let value = document.createElement("div");
                                     let suit = document.createElement("div");
@@ -713,13 +742,12 @@ $(document).ready(() => {
                                     value.className = "value";
                                     suit.className = "suit " + c._suit;
                                     value.innerHTML = translateFaceValue(c._face);
-                                    if(first){
+                                    if (first) {
                                         card.style.left = "50px";
-                                        card.id = "card1_"+j;
-                                    }
-                                    else{
+                                        card.id = "card1_" + j;
+                                    } else {
                                         card.style.right = "50px";
-                                        card.id = "card2_"+j;
+                                        card.id = "card2_" + j;
                                     }
                                     first = false;
                                     card.appendChild(value);
@@ -738,19 +766,20 @@ $(document).ready(() => {
                     if (playerName.innerText.includes(player)) {
                         let card1 = document.getElementById("card1_" + i);
                         let card2 = document.getElementById("card2_" + i);
-                        if(card1 != null && card2 != null){
+                        if (card1 != null && card2 != null) {
                             card1.parentNode.removeChild(card1);
                             card2.parentNode.removeChild(card2);
                         }
                         let playerName = document.getElementById("player_name" + i);
-                        playerName.innerText += " (FOLDED)";
+                        // removed because it could cause inconsistency when finding the player board
+                        // playerName.innerText += " (FOLDED)";
                         playerName.style.fontWeight = "bold";
                         playerName.style.color = "#ff0000";
                     }
                 }
             }
 
-            function displayForm () {
+            function displayForm() {
                 document.getElementById("startbtn").style.display = "none";
                 document.getElementById("container").style.display = "none";
                 document.getElementById("form_container").style.display = "block";
@@ -772,8 +801,8 @@ $(document).ready(() => {
                 let players = status.players;
                 for (let i = 1; i <= players.length; ++i) {
                     document.getElementById("player_board" + i).style.display = "block";
-                    document.getElementById("player_name" + i).innerHTML = players[i-1].name;
-                    document.getElementById("player_money" + i).innerHTML = players[i-1].money;
+                    document.getElementById("player_name" + i).innerHTML = players[i - 1].name;
+                    document.getElementById("player_money" + i).innerHTML = players[i - 1].money;
                 }
             }
 
@@ -801,22 +830,22 @@ $(document).ready(() => {
                     }
                 }
 
-                function startClient(){
+                function startClient() {
                     return new Promise(resolve => {
                         window.pl = new PlayerClient(nickname + "clientPeer", nickname, parseInt(money));
                         puts("registering ...");
                         setTimeout((() => {
-                            window.pl.register("room0", function(){
+                            window.pl.register("room0", function () {
                                 resolve()
                             }, () => {
-                                myAlert("Notification","SERVER DISCONNECTED!");
+                                myAlert("Notification", "SERVER DISCONNECTED!");
                                 serverDisconnect();
                             });
                         }), 500);
                     })
                 }
 
-                startClient().then(()=>{
+                startClient().then(() => {
                     /*window.pl.gameStatus().then(gameStatus => {
                         let players = gameStatus.players;
                         if(players.length >= 4 && !players.some((p) => p.name === window.pl._playerName)){
@@ -824,11 +853,11 @@ $(document).ready(() => {
                             window.pl.disconnectAndDestroy();
                         }
                         else{*/
-                            displayBoard();
-                            placePlayerOnBoard().then(()=>{
-                                //checkForOtherPlayers();
-                            })
-                        //}
+                    displayBoard();
+                    placePlayerOnBoard().then(() => {
+                        //checkForOtherPlayers();
+                    })
+                    //}
                     //})
                 });
 

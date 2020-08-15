@@ -17,7 +17,6 @@ define(require => {
     const clientRequestFilter = m => m.messageType === "request";
 
 
-
     /**
      * An interface for a remote player, used in server side,
      * where the state of the game resides.
@@ -73,8 +72,8 @@ define(require => {
                         }
                     }
                 });
-                this._connection.on("close", ()=>this.peerDisconnected());
-                this._connection.on("error", ()=>this.peerDisconnected());
+                this._connection.on("close", () => this.peerDisconnected());
+                this._connection.on("error", () => this.peerDisconnected());
             })
 
         }
@@ -91,10 +90,10 @@ define(require => {
         }
 
         isConnectionAlive() {
-            if(this._connection === null || this._connection === undefined){
+            if (this._connection === null || this._connection === undefined) {
                 return false;
             }
-            if(!this._connection.open){
+            if (!this._connection.open) {
                 this.peerDisconnected();
                 return false;
             }
@@ -121,19 +120,19 @@ define(require => {
                     decisionMessage = undefined;
                     while (decisionMessage === undefined) {
                         // we recheck at every loop if the connection is still alive.
-                        if(this.isConnectionAlive()){
+                        if (this.isConnectionAlive()) {
                             //if the connection is still alive, we await for a decision
                             // message on queue, with a timeout.
-                            try{
+                            try {
                                 decisionMessage = await this._messageQueue.timeOutDequeue(15_000, decisionFilter)
                                 console.log(decisionMessage)
-                            }catch(e){
+                            } catch (e) {
                                 //something went wrong (probably timeout): we log the error,
                                 // and decisionMessage is left undefined (so we reloop on while).
                                 console.log(e)
                             }
 
-                        }else{
+                        } else {
                             // connection is not alive: we inform the game engine that the player decided to leave
                             return poker.PlayerInterface.decodeDecision("leave", () => 0);
                         }
@@ -158,8 +157,8 @@ define(require => {
             }
         }
 
-        playerInterfaceDestroyed(){
-            if(!!this._connection && this._connection.open) {
+        playerInterfaceDestroyed() {
+            if (!!this._connection && this._connection.open) {
                 this._connection.close();
             }
             this._connection = null
@@ -185,7 +184,6 @@ define(require => {
         }
 
 
-
         async notifyEvent(event) {
             if (this.isConnectionAlive()) {
                 this.sendData({messageType: "event", eventType: event.getEventType(), event});
@@ -208,33 +206,38 @@ define(require => {
             if (this.isConnectionAlive()) {
                 switch (request.requestName) {
                     case "budget": {
-                        this.respond(request, {budget: this.player.budget})
+                        this.reply(request, {budget: this.player.budget})
                         break;
                     }
 
-                    case "gameStatus":{
+                    case "gameStatus": {
                         let pls = []
 
-                        for(let pli of this.game.playerInterfaces){
+                        for (let pli of this.game.playerInterfaces) {
                             pls.push({
                                 name: pli.player.name,
                                 money: pli.player.budget
                             })
                         }
 
-                        this.respond(request, {
+                        this.reply(request, {
                             roundActive: this.game._gameStarted,
-                            players:pls
+                            players: pls
                         });
                     }
                         break;
+
+                    case "plate": {
+                        this.reply(request, {plate: this.game.currentPlate})
+                    }
+                    break;
                 }
             } else {
                 console.log("However, at the time of handling the request, the peer appears to be disconnected");
             }
         }
 
-        respond(request, responseData) {
+        reply(request, responseData) {
             if (this.isConnectionAlive()) {
                 responseData.messageType = "response";
                 responseData.requestName = request.requestName;
