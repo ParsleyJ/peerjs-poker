@@ -15,7 +15,7 @@ $(document).ready(() => {
                 "use strict";
                 document.getElementById("msgBox").innerHTML = "<a href=\"javascript:closeAlert('msgBox')\" style=\"float:right\">" +
                     "<p>[X]</p>" +
-                    "</a><h2 style=\"text-align:center; margin-top:0; font-family: Arial, serif;\">"
+                    "</a><h2 style=\"text-align:center; margin-top:0; font-family: Carnevalee\">"
                     + title +
                     "</h2><hr>" +
                     "<p style=\"text-align:left; font-family: Arial, serif;\">"
@@ -77,7 +77,6 @@ $(document).ready(() => {
                     $("#leave_button").click(() => {
                         toggleButtons(possibleMoves, false);
                         leave();
-                        alert("YOU LEFT THE GAME!");
                         resolve("leave")
                     })
                     $("#allin_button").click(() => {
@@ -294,7 +293,7 @@ $(document).ready(() => {
                                             let joiningNow = true;
                                             for (let i = 1; i <= 4; ++i) {
                                                 let playerName = document.getElementById("player_name" + i).innerText;
-                                                if (playerName.includes(p) || (playerName.includes(p) && playerName.includes("FOLDED"))) {
+                                                if (playerName === p) {
                                                     joiningNow = false;
                                                 }
                                             }
@@ -319,7 +318,7 @@ $(document).ready(() => {
                                     let cards = event._cards;
                                     let first = true;
                                     for (let card of cards) {
-                                        renderHandCard(this, card._face, translateSuit(card._suit), first);
+                                        renderHandCard(this, card._face, card._suit, first);
                                         first = false;
                                     }
                                 }
@@ -333,11 +332,11 @@ $(document).ready(() => {
                                     //Questo in futuro potrebbe essere nella console di log
                                     document.getElementById("phase_name").innerText = event._phaseName;
                                     if (phase === "Flop betting") {
-                                        renderTable(phase, event._table, event._plate);
+                                        renderTable(phase, event._table);
                                     } else if (phase === "Turn betting") {
-                                        renderTable(phase, event._table, event._plate);
+                                        renderTable(phase, event._table);
                                     } else if (phase === "River betting") {
-                                        renderTable(phase, event._table, event._plate);
+                                        renderTable(phase, event._table);
                                     } else if (phase === "Blind placements") {
                                         //Already handled in BlindsPlaced
                                     } else if (phase === "Dealing cards") {
@@ -357,12 +356,12 @@ $(document).ready(() => {
                                 }
                                 //CHECKDONE
                                 else if (event instanceof events.CheckDone) {
-                                    myAlert("Notification", "PLAYER " + event._player + " CHECKS");
+                                    myAlert("NOTIFICATION", "PLAYER " + event._player + " CHECKS");
                                     setMoneyState(event._moneyState);
                                 }
                                 //CALLDONE
                                 else if (event instanceof events.CallDone) {
-                                    myAlert("Notification", "PLAYER " + event._player + " CALLS (" + event._betAmount + ")");
+                                    myAlert("NOTIFICATION", "PLAYER " + event._player + " CALLS (" + event._betAmount + ")");
                                     updateBet(event._player, event._betAmount);
                                     setMoneyState(event._moneyState);
                                 }
@@ -373,18 +372,18 @@ $(document).ready(() => {
                                 }
                                 //ALL IN
                                 else if (event instanceof events.AllInDone) {
-                                    myAlert("Notification", "PLAYER " + event._player + " GOES ALL IN!");
+                                    myAlert("NOTIFICATION", "PLAYER " + event._player + " GOES ALL IN!");
                                     updateBet(event._player, event._howMuch);
                                     setMoneyState(event._moneyState);
                                 }
                                 //INSUFFICIENT FUNDS TO BET
                                 else if (event instanceof events.InsufficientFundsToBet) {
-                                    myAlert("Notification", "You cannot bet:\nYOUR MONEY: " + event._money + "\nMONEY NEEDED: " + event._moneyNeeded);
+                                    myAlert("NOTIFICATION", "You cannot bet:\nYOUR MONEY: " + event._money + "\nMONEY NEEDED: " + event._moneyNeeded);
                                 }
                                 //SHOWDOWN RESULTS
                                 else if (event instanceof events.ShowDownResults) {
                                     showDownResults(event._showDownRanking);
-                                    myAlert("Notification", event.toString());
+                                    myAlert("NOTIFICATION", event.toString());
                                     setMoneyState(event._moneyState);
                                 }
                                 //PLAYER WON ROUND
@@ -398,7 +397,7 @@ $(document).ready(() => {
                                 }
                                 //PLAYER JOINED ROUND
                                 else if (event instanceof events.PlayerJoinedRound) {
-                                    playerJoined(event._player, event._budget);
+                                    await playerJoined(event._player, event._budget);
                                 }
                                 //AWAITING FOR PLAYERS
                                 else if (event instanceof events.AwaitingForPlayers) {
@@ -412,12 +411,12 @@ $(document).ready(() => {
                                 }
                                 //PEER DISCONNECTED
                                 else if (event instanceof events.PeerDisconnected) {
-                                    myAlert("Notification", "PEER DISCONNECTED = PLAYER " + event._playerName);
+                                    myAlert("NOTIFICATION", "PEER DISCONNECTED = PLAYER " + event._playerName);
                                     playerLeft(event._playerName);
                                 }
                                 //PLAYER DISQUALIFIED
                                 else if (event instanceof events.PlayerDisqualified) {
-                                    myAlert("Notification", "PLAYER " + event._player + " DISQUALIFIED, REASON: " + event._reason);
+                                    myAlert("NOTIFICATION", "PLAYER " + event._player + " DISQUALIFIED, REASON: " + event._reason);
                                     if (event._player === window.pl._playerName) {
                                         await leave();
                                     } else {
@@ -495,10 +494,11 @@ $(document).ready(() => {
 
             async function serverDisconnect() {
                 document.getElementById("cards_board").style.display = "none";
-                document.getElementById("player_board1").style.display = "none";
-                document.getElementById("player_board2").style.display = "none";
-                document.getElementById("player_board3").style.display = "none";
-                document.getElementById("player_board4").style.display = "none";
+                for(let i=1; i<=4; ++i){
+                    document.getElementById("player_board"+i).style.display = "none";
+                    document.getElementById("player_name"+i).innerText = "";
+                    document.getElementById("player_money"+i).innerText = "";
+                }
                 document.getElementById("button_container").style.display = "none";
                 document.getElementById("logArea").style.display = "none";
                 document.getElementById("round_number").style.display = "none";
@@ -513,8 +513,16 @@ $(document).ready(() => {
              * @param {string} playerNickname
              * @param {string} playerBudget
              */
-            function playerJoined(playerNickname, playerBudget) {
-                if (playerNickname !== window.pl._playerName) {
+            async function playerJoined(playerNickname, playerBudget) {
+                let status = await window.pl.gameStatus();
+                let players = status.players;
+                let joining = false;
+                for(let j=0; j<players.length; ++j){
+                    if(players[j].name === playerNickname){
+                        joining = true;
+                    }
+                }
+                if (playerNickname !== window.pl._playerName && joining) {
                     for (let i = 1; i <= 4; ++i) {
                         let playerName = document.getElementById("player_name" + i);
                         let playerMoney = document.getElementById("player_money" + i);
@@ -592,7 +600,12 @@ $(document).ready(() => {
                     }
                     let playerName = document.getElementById("player_name" + i);
                     for (let p of players) {
-                        if (playerName.innerText.includes(p)) {
+                        if (playerName.innerText === p) {
+                            let foldNotif = document.getElementById("player_notifA" + i);
+                            if(foldNotif.innerText === "(FOLDED)"){
+                                foldNotif.innerText  = "";
+                                foldNotif.style.visibility = "hidden";
+                            }
                             playerName.innerText = p;
                             playerName.style.fontWeight = "normal";
                             playerName.style.color = "white";
@@ -602,7 +615,7 @@ $(document).ready(() => {
             }
 
             function playerWonRound(event) {
-                myAlert("Notification", "PLAYER " + event._player + " WON " + event._howMuch + " THIS ROUND!");
+                myAlert("NOTIFICATION", "PLAYER " + event._player + " WON " + event._howMuch + " THIS ROUND!");
                 for (let i = 1; i <= 4; ++i) {
                     let playerName = document.getElementById("player_name" + i);
                     if (playerName.innerText === event._player) {
@@ -625,7 +638,7 @@ $(document).ready(() => {
                 }
                 for (let i = 1; i <= 4; ++i) {
                     let playerName = document.getElementById("player_name" + i);
-                    if (playerName.innerText.includes(player)) {
+                    if (playerName.innerText === player) {
                         let currentMoney = document.getElementById("player_money" + i).innerText;
                         let newMoney = parseInt(currentMoney) - parseInt(betAmount);
                         if (newMoney < 0) {
@@ -661,7 +674,7 @@ $(document).ready(() => {
                 return suits[suit - 1];
             }
 
-            function renderTable(phase, cards, plate) {
+            function renderTable(phase, cards) {
                 let table = document.getElementById("cards_board");
                 let card = document.createElement("div");
                 let value = document.createElement("div");
@@ -709,7 +722,7 @@ $(document).ready(() => {
                         let suit = document.createElement("div");
                         card.className = "card";
                         value.className = "value";
-                        suit.className = "suit " + suitVal;
+                        suit.className = "suit " + translateSuit(suitVal);
                         value.innerHTML = translateFaceValue(number);
                         if (first) {
                             card.style.left = "50px";
@@ -757,7 +770,6 @@ $(document).ready(() => {
                         }
                     }
 
-
                     //showing cards:
                     if (name !== window.pl._playerName) {
                         let hole = results[i].hole;
@@ -778,7 +790,7 @@ $(document).ready(() => {
                                     let suit = document.createElement("div");
                                     card.className = "card";
                                     value.className = "value";
-                                    suit.className = "suit " + c._suit;
+                                    suit.className = "suit " + translateSuit(c._suit);
                                     value.innerHTML = translateFaceValue(c._face);
                                     if (first) {
                                         card.style.left = "50px";
@@ -801,7 +813,7 @@ $(document).ready(() => {
             function fold(player) {
                 for (let i = 1; i <= 4; ++i) {
                     let playerName = document.getElementById("player_name" + i);
-                    if (playerName.innerText.includes(player)) {
+                    if (playerName.innerText === player) {
                         let card1 = document.getElementById("card1_" + i);
                         let card2 = document.getElementById("card2_" + i);
                         if (card1 != null && card2 != null) {
@@ -809,8 +821,8 @@ $(document).ready(() => {
                             card2.parentNode.removeChild(card2);
                         }
                         let playerName = document.getElementById("player_name" + i);
-                        // removed because it could cause inconsistency when finding the player board
-                        // playerName.innerText += " (FOLDED)";
+                        document.getElementById("player_notifA" + i).innerText = "(FOLDED)";
+                        document.getElementById("player_notifA" + i).style.visibility = "visible";
                         playerName.style.fontWeight = "bold";
                         playerName.style.color = "#ff0000";
                     }
@@ -876,7 +888,7 @@ $(document).ready(() => {
                             window.pl.register("room0", function () {
                                 resolve()
                             }, () => {
-                                myAlert("Notification", "SERVER DISCONNECTED!");
+                                myAlert("NOTIFICATION", "SERVER DISCONNECTED!");
                                 serverDisconnect();
                             });
                         }), 500);
@@ -887,7 +899,7 @@ $(document).ready(() => {
                     /*window.pl.gameStatus().then(gameStatus => {
                         let players = gameStatus.players;
                         if(players.length >= 4 && !players.some((p) => p.name === window.pl._playerName)){
-                            myAlert("Notification",THE GAME ROOM IS ALREADY FULL!");
+                            myAlert("NOTIFICATION",THE GAME ROOM IS ALREADY FULL!");
                             window.pl.disconnectAndDestroy();
                         }
                         else{*/

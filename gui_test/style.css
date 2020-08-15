@@ -88,6 +88,38 @@ button[disabled]{
     left: 110px;
 }
 
+.phase_name {
+    color: white;
+    font-family: Arial;
+    font-weight: normal;
+    font-size: 2em;
+    position: absolute;
+    left: 10px;
+    top: 10px;
+}
+
+.plate {
+    background: radial-gradient(limegreen, transparent 70%);
+    color: white;
+    font-family: Arial, serif;
+    font-weight: normal;
+    font-size: 1em;
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    padding: 10px;
+}
+
+.deck_image {
+    border: none;
+    background: none;
+    height: 180px;
+    width: 180px;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}
+
 .leave_button{
     box-shadow:inset 0px 1px 0px 0px #ffffff;
     background: #ededed linear-gradient(to bottom, #ededed 5%, #dfdfdf 100%);
@@ -331,14 +363,16 @@ input[type=submit] {
     margin-top: 5px;
 }
 
-.cards_board{
+.cards_board {
     border: none;
-    background-color:darkgreen;
+    background-color: darkgreen;
     height: 210px;
     width: auto;
     margin-left: 10px;
     margin-right: 10px;
     margin-bottom: 10px;
+    display: none;
+    position: relative;
 }
 
 .player_board1{

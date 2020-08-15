@@ -60,7 +60,7 @@ button[disabled] {
     margin: auto 10px auto auto;
     display: none;
     position: absolute;
-    top: 98px;
+    top: 95px;
     right: 10px;
 }
 
@@ -338,25 +338,22 @@ input[type=submit] {
 
 .phase_name {
     color: white;
-    font-family: Arial, serif;
+    font-family: Carnevalee;
     font-weight: normal;
-    text-align: center;
-    font-size: 1em;
-    float: left;
+    font-size: 2em;
     position: absolute;
-    left: 5px;
-    top: 5px;
+    left: 10px;
+    top: 0px;
 }
 
 .plate {
-    background: radial-gradient(limegreen, transparent 70%);
     color: white;
-    font-family: Arial, serif;
+    font-family: Carnevalee;
     font-weight: normal;
-    text-align: center;
-    font-size: 1em;
-    float: right;
-    padding: 10px;
+    font-size: 2em;
+    position: absolute;
+    right: 10px;
+    top: 0px;
 }
 
 .deck_image {

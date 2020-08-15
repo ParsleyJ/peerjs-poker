@@ -44,8 +44,7 @@
                 <label for="money">Money</label>
             </div>
             <div class="col-75">
-                <input type="number" id="money" name="money" class="money" placeholder="Your initial money pool.."
-                       required>
+                <input type="number" id="money" name="money" class="money" placeholder="Your initial money pool.." max="999999" min="999" required>
             </div>
         </div>
         <div class="row">
@@ -57,7 +56,7 @@
 <div class="floatingDiv" id="msgBox" style="visibility: hidden"></div>
 
 <div class="cards_board" id="cards_board">
-    <h1 class="phase_name" id="phase_name"></h1>
+    <div class="phase_name" id="phase_name"></div>
     <img class="deck_image" src="img/deck_cover.png">
     <div class="plate" id="plate"></div>
 </div>
