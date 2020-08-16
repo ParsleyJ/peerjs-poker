@@ -282,33 +282,11 @@ $(document).ready(() => {
                                 //ROUND ABOUT TO START
                                 if (event instanceof events.RoundAboutToStart) {
                                     //Nothing
-                                    //TODO alert?
                                 }
                                 //ROUND STARTED
                                 if (event instanceof events.RoundStarted) {
                                     document.getElementById("round_number").innerText = "ROUND " + event._roundID;
-                                    let players = event._players;
-                                    for (let p of players) {
-                                        if (p === window.pl._playerName) {
-                                            let joiningNow = true;
-                                            for (let i = 1; i <= 4; ++i) {
-                                                let playerName = document.getElementById("player_name" + i).innerText;
-                                                if (playerName === p) {
-                                                    joiningNow = false;
-                                                }
-                                            }
-                                            if (joiningNow) {
-                                                for (let j = 1; j <= 4; ++j) {
-                                                    if (document.getElementById("player_name" + j).innerText === "") {
-                                                        document.getElementById("player_board" + j).style.display = "block";
-                                                        document.getElementById("player_name" + j).innerHTML = window.pl._playerName;
-                                                        document.getElementById("player_money" + j).innerHTML = window.pl._initialBudget;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                                    joinGame(event);
                                     if (event._roundID > 0) {
                                         clearTable(event._players);
                                     }
@@ -349,8 +327,7 @@ $(document).ready(() => {
                                 }
                                 //BLINDDONE
                                 else if (event instanceof events.BlindsPlaced) {
-                                    //TODO alert?
-
+                                    myAlert("NOTIFICATION", "BLINDS PLACED!")
                                     // placeBlinds(event._blindPlayer, event._smallBlindPlayer);
                                     setMoneyState(event._moneyState);
                                 }
@@ -478,6 +455,31 @@ $(document).ready(() => {
 
                 async getPlateAmount() {
                     return (await this.request("plate")).plate
+                }
+            }
+
+            function joinGame(event){
+                let players = event._players;
+                for (let p of players) {
+                    if (p === window.pl._playerName) {
+                        let joiningNow = true;
+                        for (let i = 1; i <= 4; ++i) {
+                            let playerName = document.getElementById("player_name" + i).innerText;
+                            if (playerName === p) {
+                                joiningNow = false;
+                            }
+                        }
+                        if (joiningNow) {
+                            for (let j = 1; j <= 4; ++j) {
+                                if (document.getElementById("player_name" + j).innerText === "") {
+                                    document.getElementById("player_board" + j).style.display = "block";
+                                    document.getElementById("player_name" + j).innerHTML = window.pl._playerName;
+                                    document.getElementById("player_money" + j).innerHTML = window.pl._initialBudget;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -888,7 +890,7 @@ $(document).ready(() => {
                             window.pl.register("room0", function () {
                                 resolve()
                             }, () => {
-                                myAlert("NOTIFICATION", "SERVER DISCONNECTED!");
+                                myAlert("NOTIFICATION", "DISCONNECTED FROM SERVER!");
                                 serverDisconnect();
                             });
                         }), 500);
