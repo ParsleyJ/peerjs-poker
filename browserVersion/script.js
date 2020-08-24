@@ -187,7 +187,8 @@ $(document).ready(() => {
                     this._peer = new Peer(clientID, {
                         host: 'localhost',
                         port: 9000,
-                        path: '/pokerGame'
+                        path: '/pokerGame',
+                        debug: true,
                     });
 
                     // this._peer = new Peer(clientID);
@@ -374,7 +375,7 @@ $(document).ready(() => {
                                 }
                                 //PLAYER JOINED ROUND
                                 else if (event instanceof events.PlayerJoinedRound) {
-                                    await playerJoined(event._player, event._budget);
+                                    playerJoined(event._players);
                                 }
                                 //AWAITING FOR PLAYERS
                                 else if (event instanceof events.AwaitingForPlayers) {
@@ -458,7 +459,7 @@ $(document).ready(() => {
                 }
             }
 
-            function joinGame(event){
+            function joinGame(event) {
                 let players = event._players;
                 for (let p of players) {
                     if (p === window.pl._playerName) {
@@ -496,10 +497,10 @@ $(document).ready(() => {
 
             async function serverDisconnect() {
                 document.getElementById("cards_board").style.display = "none";
-                for(let i=1; i<=4; ++i){
-                    document.getElementById("player_board"+i).style.display = "none";
-                    document.getElementById("player_name"+i).innerText = "";
-                    document.getElementById("player_money"+i).innerText = "";
+                for (let i = 1; i <= 4; ++i) {
+                    document.getElementById("player_board" + i).style.display = "none";
+                    document.getElementById("player_name" + i).innerText = "";
+                    document.getElementById("player_money" + i).innerText = "";
                 }
                 document.getElementById("button_container").style.display = "none";
                 document.getElementById("logArea").style.display = "none";
@@ -512,27 +513,30 @@ $(document).ready(() => {
             }
 
             /**
-             * @param {string} playerNickname
-             * @param {string} playerBudget
+             * @param {[{name:string, money:number}]} playersFromEvent
              */
-            async function playerJoined(playerNickname, playerBudget) {
+            async function playerJoined(playersFromEvent) {
                 let status = await window.pl.gameStatus();
-                let players = status.players;
-                let joining = false;
-                for(let j=0; j<players.length; ++j){
-                    if(players[j].name === playerNickname){
-                        joining = true;
+                let playersFromStatusQuery = status.players;
+                for(let plev of playersFromEvent){
+                    let playerNickname = plev.name;
+                    let playerBudget = plev.money;
+                    let joining = false;
+                    for (let j = 0; j < playersFromStatusQuery.length; ++j) {
+                        if (playersFromStatusQuery[j].name === playerNickname) {
+                            joining = true;
+                        }
                     }
-                }
-                if (playerNickname !== window.pl._playerName && joining) {
-                    for (let i = 1; i <= 4; ++i) {
-                        let playerName = document.getElementById("player_name" + i);
-                        let playerMoney = document.getElementById("player_money" + i);
-                        if (playerName.innerText === "") {
-                            document.getElementById("player_board" + i).style.display = "block";
-                            playerName.innerText = playerNickname;
-                            playerMoney.innerText = "" + playerBudget;
-                            break;
+                    if (playerNickname !== window.pl._playerName && joining) {
+                        for (let i = 1; i <= 4; ++i) {
+                            let playerName = document.getElementById("player_name" + i);
+                            let playerMoney = document.getElementById("player_money" + i);
+                            if (playerName.innerText === "") {
+                                document.getElementById("player_board" + i).style.display = "block";
+                                playerName.innerText = playerNickname;
+                                playerMoney.innerText = "" + playerBudget;
+                                break;
+                            }
                         }
                     }
                 }
@@ -604,8 +608,8 @@ $(document).ready(() => {
                     for (let p of players) {
                         if (playerName.innerText === p) {
                             let foldNotif = document.getElementById("player_notifA" + i);
-                            if(foldNotif.innerText === "(FOLDED)"){
-                                foldNotif.innerText  = "";
+                            if (foldNotif.innerText === "(FOLDED)") {
+                                foldNotif.innerText = "";
                                 foldNotif.style.visibility = "hidden";
                             }
                             playerName.innerText = p;

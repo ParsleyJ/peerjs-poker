@@ -59,7 +59,7 @@ define((require) => {
                 case "AwaitingForPlayers":
                     return new AwaitingForPlayers();
                 case "PlayerJoinedRound":
-                    return new PlayerJoinedRound(object._player, object._budget);
+                    return new PlayerJoinedRound(object._players);
                 default:
                     return new PokerEvent();
             }
@@ -591,31 +591,30 @@ define((require) => {
         }
     }
 
-    class PlayerJoinedRound extends PokerEvent{
-        _player;
-        _budget;
 
-        constructor(player, budget) {
+    class PlayerJoinedRound extends PokerEvent{
+        _players;
+
+        /**
+         * @param {[{name:string, money:number}]} players
+         */
+        constructor(players) {
             super();
-            this._player = player;
-            this._budget = budget;
+            this._players = players;
         }
 
 
-        get player() {
+        get players() {
             return this._player;
         }
 
-        get budget() {
-            return this._budget;
-        }
 
         getEventType() {
             return "PlayerJoinedRound";
         }
 
         toString(){
-            return "(event: player " + this._player + " joined this round {with budget: "+this._budget+"})";
+            return "(event: player(s) joined this round {players: "+this._players.map(p=>p.name)+"})";
         }
     }
 

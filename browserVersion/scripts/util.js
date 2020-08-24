@@ -53,8 +53,8 @@ define(require=>{
                 callback(message);
                 return;
             }
-            this.printQueues("enqueue:enqueued")
             this._queue.push(message);
+            this.printQueues("enqueue:enqueued")
         }
 
         printQueues(premessage) {

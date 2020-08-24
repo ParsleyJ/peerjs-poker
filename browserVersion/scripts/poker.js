@@ -428,7 +428,7 @@ define((require) => {
             return this.round.getHoleForPlayer(player);
         }
 
-        buildMoneyState(){
+        buildMoneyState() {
             return this.round.buildMoneyState();
         }
 
@@ -536,7 +536,6 @@ define((require) => {
         }
 
 
-
         /**
          * We reach a "bet consensus" state if each player did either fold, or betted the current maxBet (a.k.a.
          * called the latest raise), or chose to all-in.
@@ -632,7 +631,7 @@ define((require) => {
                     continue;
                 }
 
-                if(this.round.didPlayerAllIn(pl)){
+                if (this.round.didPlayerAllIn(pl)) {
                     // pl previously alled-in, so he can't do anything else now.
                     // skipping him/her
                     playerTurnCounter++
@@ -848,7 +847,7 @@ define((require) => {
         async execute() {
             await super.execute();
             puts("PRE-FLOP BETTING");
-            if(this.someoneWonForEveryoneFolded){
+            if (this.someoneWonForEveryoneFolded) {
                 puts("EVERYONE FOLDED WINNER: " + this.everyoneFoldedWinner);
             }
             this.game.broadCastEvent(new events.PhaseStarted("Pre flop betting", this.round.plate, this.round.table));
@@ -1076,12 +1075,12 @@ define((require) => {
         /**
          * @return {{budgets:[{name:string, money:number}], plate:number}}
          */
-        buildMoneyState(){
+        buildMoneyState() {
             let budgets = [];
-            for(let pli of this.game.playerInterfaces){
-                budgets.push({name:pli.player.name, money:pli.player.budget})
+            for (let pli of this.game.playerInterfaces) {
+                budgets.push({name: pli.player.name, money: pli.player.budget})
             }
-            return {budgets:budgets, plate: this.plate}
+            return {budgets: budgets, plate: this.plate}
         }
 
         get roundID() {
@@ -1129,7 +1128,7 @@ define((require) => {
                         phase.everyoneFoldedWinner = winnerAsEveryoneFolded;
                     }
                     await phase.execute();
-                    if(phase instanceof Deal){
+                    if (phase instanceof Deal) {
                         winnerAsEveryoneFolded = phase.everyoneFoldedWinner;
                     }
                 }
@@ -1221,8 +1220,10 @@ define((require) => {
             } else {
                 this._playerInterfaces.push(playerInterface);
                 puts("" + playerInterface + " joined the lobby, ready to start.");
-                this.broadCastEvent(new events.PlayerJoinedRound(playerInterface.player.name,
-                    playerInterface.player.budget));
+                this.broadCastEvent(new events.PlayerJoinedRound([{
+                    name: playerInterface.player.name,
+                    money: playerInterface.player.budget
+                }]));
                 return -1;
             }
         }
@@ -1283,10 +1284,10 @@ define((require) => {
             return this._gameStarted;
         }
 
-        get currentPlate(){
-            if(!!this._currentRound){
+        get currentPlate() {
+            if (!!this._currentRound) {
                 return this._currentRound._plate;
-            }else{
+            } else {
                 return 0;
             }
         }
@@ -1294,6 +1295,7 @@ define((require) => {
         syphonPlayersFromQueue() {
             // adds any enqueued players, if they are present and while there are vacant seats
             let addedPlayers = 0;
+            let joinedPlayersFromQueue = [];
             for (let pl of this._enteringPlayersQueue) {
                 if (this.playerInterfaces.length >= this._maxPlayersInGame) {
                     break;
@@ -1301,11 +1303,21 @@ define((require) => {
                 if (!this._playerInterfaces.some(pl2 => pl2.player.id === pl.player.id)) {
                     this._playerInterfaces.push(pl);
                     addedPlayers++;
-                    puts("" + pl + " was in the lobby and now enters the game.");
-                    this.broadCastEvent(new events.PlayerJoinedRound(pl.player.name,
-                        pl.player.budget));
+                    joinedPlayersFromQueue.push(pl);
                 }
             }
+
+
+            if(joinedPlayersFromQueue.length>0) {
+                puts("Player(s) (" + joinedPlayersFromQueue + ") was(were) in the lobby and now enter(s) the game.");
+                this.broadCastEvent(new events.PlayerJoinedRound(
+                    joinedPlayersFromQueue.map(pl => ({
+                        name: pl.player.name,
+                        money: pl.player.budget,
+                    }))
+                ));
+            }
+
 
             // remove the added players from the queue
             this._enteringPlayersQueue.splice(0, addedPlayers);

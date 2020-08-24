@@ -257,7 +257,8 @@ define(require => {
             this._peer = new Peer(roomPeerID, {
                 host: 'localhost',
                 port: 9000,
-                path: '/pokerGame'
+                path: '/pokerGame',
+                debug: true,
             });
             // this._peer = new Peer(roomPeerID);
         }
