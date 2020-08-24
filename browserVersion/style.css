@@ -336,24 +336,25 @@ input[type=submit] {
     left: 10px;
 }
 
+
 .phase_name {
     color: white;
-    font-family: Carnevalee;
+    font-family: Carnevalee, serif;
     font-weight: normal;
     font-size: 2em;
     position: absolute;
     left: 10px;
-    top: 0px;
+    top: 0;
 }
 
 .plate {
     color: white;
-    font-family: Carnevalee;
+    font-family: Carnevalee, serif;
     font-weight: normal;
     font-size: 2em;
     position: absolute;
     right: 10px;
-    top: 0px;
+    top: 0;
 }
 
 .deck_image {

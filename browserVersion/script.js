@@ -76,7 +76,7 @@ $(document).ready(() => {
                     })
                     $("#leave_button").click(() => {
                         toggleButtons(possibleMoves, false);
-                        leave();
+                        leave().then(() => console.log("Player Left."));
                         resolve("leave")
                     })
                     $("#allin_button").click(() => {
@@ -93,61 +93,35 @@ $(document).ready(() => {
 
             function toggleButtons(possibleMoves, enable) {
                 for (let m of possibleMoves) {
+                    let button;
                     if (m === "bet") {
-                        let button = document.getElementById("bet_button");
-                        button.disabled = !enable;
+                        button = document.getElementById("bet_button");
                     } else if (m === "raise") {
-                        let button = document.getElementById("bet_button");
+                        button = document.getElementById("bet_button");
                         if (enable) {
                             button.innerText = "RAISE";
-                            button.disabled = false;
                         } else {
                             button.innerText = "BET";
-                            button.disabled = true;
                         }
                     } else if (m === "call") {
-                        let button = document.getElementById("call_button");
-                        if (enable) {
-                            button.disabled = false;
-                        } else {
-                            button.disabled = true;
-                        }
+                        button = document.getElementById("call_button");
                     } else if (m === "check") {
-                        let button = document.getElementById("check_button");
-                        if (enable) {
-                            button.disabled = false;
-                        } else {
-                            button.disabled = true;
-                        }
+                        button = document.getElementById("check_button");
                     } else if (m === "fold") {
-                        let button = document.getElementById("fold_button");
-                        if (enable) {
-                            button.disabled = false;
-                        } else {
-                            button.disabled = true;
-                        }
+                        button = document.getElementById("fold_button");
                     } else if (m === "leave") {
-                        let button = document.getElementById("leave_button");
-                        if (enable) {
-                            button.disabled = false;
-                        } else {
-                            button.disabled = true;
-                        }
+                        button = document.getElementById("leave_button");
                     } else if (m === "allin") {
-                        let button = document.getElementById("allin_button");
-                        if (enable) {
-                            button.disabled = false;
-                        } else {
-                            button.disabled = true;
-                        }
+                        button = document.getElementById("allin_button");
+                    }
+
+                    if (!!button) {
+                        button.disabled = !enable;
                     }
                 }
+
                 let betAmount = document.getElementById("betAmountInput");
-                if (enable) {
-                    betAmount.disabled = false;
-                } else {
-                    betAmount.disabled = true;
-                }
+                betAmount.disabled = !enable;
             }
 
             /**
@@ -278,21 +252,21 @@ $(document).ready(() => {
                                 let event = events.PokerEvent.eventFromObj(message.eventType, message.event);
                                 //SPECTATOR
                                 /*if(event instanceof events.PlayersBeforeYou){
-                                    await serverDisconnect();
+                                    await dealerDisconnected();
                                 }*/
                                 //ROUND ABOUT TO START
                                 if (event instanceof events.RoundAboutToStart) {
-                                    setTimeout(()=>{
+                                    setTimeout(() => {
                                         myAlert("NOTIFICATION", "Round starting in 3...");
-                                    },7000);
+                                    }, 7000);
 
-                                    setTimeout(()=>{
+                                    setTimeout(() => {
                                         myAlert("NOTIFICATION", "Round starting in 2...");
-                                    },8000);
+                                    }, 8000);
 
-                                    setTimeout(()=>{
+                                    setTimeout(() => {
                                         myAlert("NOTIFICATION", "Round starting in 1...");
-                                    },9000);
+                                    }, 9000);
                                 }
                                 //ROUND STARTED
                                 if (event instanceof events.RoundStarted) {
@@ -338,8 +312,7 @@ $(document).ready(() => {
                                 }
                                 //BLINDDONE
                                 else if (event instanceof events.BlindsPlaced) {
-                                    myAlert("NOTIFICATION", "BLINDS PLACED! (blind: "+event._blindPlayer+", smallBlind: "+event._smallBlindPlayer+")")
-                                    // placeBlinds(event._blindPlayer, event._smallBlindPlayer);
+                                    myAlert("NOTIFICATION", "BLINDS PLACED! (blind: " + event._blindPlayer + ", smallBlind: " + event._smallBlindPlayer + ")")
                                     setMoneyState(event._moneyState);
                                 }
                                 //CHECKDONE
@@ -385,7 +358,8 @@ $(document).ready(() => {
                                 }
                                 //PLAYER JOINED ROUND
                                 else if (event instanceof events.PlayerJoinedRound) {
-                                    playerJoined(event._players);
+                                    playerJoined(event._players).then(()=> console.log("Rendering of players: " +
+                                        "["+event._players.map(pl => pl.name)+"] completed."));
                                 }
                                 //AWAITING FOR PLAYERS
                                 else if (event instanceof events.AwaitingForPlayers) {
@@ -502,10 +476,10 @@ $(document).ready(() => {
                     playerNames.push(players[i].name);
                 }
                 clearTable(playerNames);
-                await serverDisconnect();
+                await dealerDisconnected();
             }
 
-            async function serverDisconnect() {
+            async function dealerDisconnected() {
                 document.getElementById("cards_board").style.display = "none";
                 for (let i = 1; i <= 4; ++i) {
                     document.getElementById("player_board" + i).style.display = "none";
@@ -528,7 +502,7 @@ $(document).ready(() => {
             async function playerJoined(playersFromEvent) {
                 let status = await window.pl.gameStatus();
                 let playersFromStatusQuery = status.players;
-                for(let plev of playersFromEvent){
+                for (let plev of playersFromEvent) {
                     let playerNickname = plev.name;
                     let playerBudget = plev.money;
                     let joining = false;
@@ -566,29 +540,6 @@ $(document).ready(() => {
                         document.getElementById("player_money" + i).innerText = "";
                     }
                 }
-            }
-
-            function placeBlinds(blind, smallblind) {
-                for (let j = 1; j <= 4; ++j) {
-                    let playerName = document.getElementById("player_name" + j);
-                    let playerMoneyElement = document.getElementById("player_money" + j);
-                    if (playerName.innerText === blind) {
-                        let currentMoney = playerMoneyElement.innerText;
-                        playerMoneyElement.innerText = (parseInt(currentMoney) - 100).toString();
-                    } else if (playerName.innerText === smallblind) {
-                        let currentMoney = playerMoneyElement.innerText;
-                        playerMoneyElement.innerText = (parseInt(currentMoney) - 50).toString();
-                    }
-                }
-
-                let currentPlate = document.getElementById("plate").innerText;
-                document.getElementById("plate").innerText = (parseInt(currentPlate) + 150).toString();
-
-                // window.pl.getPlateAmount().then(plate => {
-                //     document.getElementById("plate").innerText = "" + plate;
-                // })
-
-
             }
 
             function clearTable(players) {
@@ -872,11 +823,6 @@ $(document).ready(() => {
                 }
             }
 
-            function checkForOtherPlayers() {
-                if (players.length < 2) {
-                    document.getElementById("logArea").textContent += "Waiting for other players..\n";
-                }
-            }
 
             window.logPlayer = function () {
                 document.getElementById("form_container").style.display = "none";
@@ -904,8 +850,10 @@ $(document).ready(() => {
                             window.pl.register("room0", function () {
                                 resolve()
                             }, () => {
-                                myAlert("NOTIFICATION", "DISCONNECTED FROM SERVER!");
-                                serverDisconnect();
+                                myAlert("NOTIFICATION", "DISCONNECTED FROM DEALER!");
+                                dealerDisconnected().then(() => {
+                                    console.log("Cleaning after disconnect done");
+                                });
                             });
                         }), 500);
                     })

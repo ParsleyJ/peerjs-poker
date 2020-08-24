@@ -18,7 +18,7 @@ define(require => {
 
 
     /**
-     * An interface for a remote player, used in server side,
+     * An interface for a remote player, used in server/dealer side,
      * where the state of the game resides.
      * The game engine uses this PlayerInterface to send notifications
      * and to ask decisions to a player connected remotely via PeerJS.

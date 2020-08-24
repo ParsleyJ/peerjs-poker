@@ -507,11 +507,6 @@ define((require) => {
                     .then(() => console.log("notification sent to " + pl.player.name));
             }
         }
-
-
-        get everyoneFoldedWinner() {
-            return this._everyoneFoldedWinner;
-        }
     }
 
     class BettingPhase extends RoundPhase {
@@ -946,6 +941,7 @@ define((require) => {
                         winners.push(e[0]);
                         firstWinnerHandPattern = e[1];
                     } else {
+                        // noinspection JSUnusedAssignment
                         if (firstWinnerHandPattern.compare(e[1]) === 0) {
                             winners.push(e[0])
                             placement = 1;

@@ -15,6 +15,7 @@
                         .add("<span>" + message + "</span>")
                         .add("<br>")
                         .appendTo(document.body);
+                    document.scrollTop = document.scrollHeight;
                 }
 
                 poker.textInOutCallbacks.promptCallback = question => {
@@ -40,8 +41,8 @@
 
                 let game = new poker.GameRoom();
 
-                let server = new remotePlay.RegistrationServer("room0", game);
-                server.listen();
+                let dealer = new remotePlay.RegistrationServer("room0", game);
+                dealer.listen();
 
                 $("#addLocalHumanButton").click(() => {
                     let newID = game.askNewID();
@@ -62,19 +63,19 @@
 
                 window.onunload = window.onbeforeunload = () => {
                     game.playerInterfaces.forEach(pl => pl.playerInterfaceDestroyed())
-                    if(!!server._peer && !server._peer.destroyed) {
-                        server._peer.destroy()
+                    if(!!dealer._peer && !dealer._peer.destroyed) {
+                        dealer._peer.destroy()
                     }
                 }
 
             }));
     </script>
-    <title>Server</title>
+    <title>Poker Dealer</title>
 </head>
 <body style="background-color:white">
 <input type="button" id="addAIButton" title="ADD AI" value="ADD AI">
 <input type="button" id="addLocalHumanButton" title="ADD LOCAL HUMAN" value="ADD LOCAL HUMAN">
-<input type="button" id="startGameButton" title="START SERVER" value="START SERVER">
+<input type="button" id="startGameButton" title="START DEALER" value="START DEALER">
 <br>
 <div id="divo"></div>
 </body>

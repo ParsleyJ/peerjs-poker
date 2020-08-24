@@ -45,10 +45,10 @@ function streamFileContent(res, fileName, contentType){
 
 const WEB_PORT = 3000;
 http.createServer((req, res) => {
-    if (req.url === "/server") {
-        sendFileContent(res, "browserVersion/server.html", "text/html");
+    if (req.url === "/dealer") {
+        sendFileContent(res, "browserVersion/dealer.html", "text/html");
     } else if (req.url === "/clientDebug") {
-        sendFileContent(res, "browserVersion/client.html", "text/html");
+        sendFileContent(res, "browserVersion/debugClient.html", "text/html");
     } else if (req.url === "/" || req.url === "/index" || req.url === "/client") {
         sendFileContent(res, "browserVersion/index.html", "text/html");
     } else if (/^\/[a-zA-Z0-9_\-\/]*.css$/.test(req.url.toString())) {

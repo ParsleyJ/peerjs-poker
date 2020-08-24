@@ -1,15 +1,15 @@
-var cards = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
-var suits = ["diamonds", "hearts", "spades", "clubs"];
-var deck = new Array();
-var playerBoard = [true, true, true, true]
-var players = new Array();
-var moneys = new Array();
+let cards = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+let suits = ["diamonds", "hearts", "spades", "clubs"];
+let deck = [];
+let playerBoard = [true, true, true, true]
+let players = [];
+let moneys = [];
 
 function getDeck(){
-    var deck = new Array();
-    for(var i = 0; i < suits.length; i++){
-        for(var x = 0; x < cards.length; x++){
-            var card = {Value: cards[x], Suit: suits[i]};
+    let deck = [];
+    for(let i = 0; i < suits.length; i++){
+        for(let x = 0; x < cards.length; x++){
+            let card = {Value: cards[x], Suit: suits[i]};
             deck.push(card);
         }
     }
@@ -20,10 +20,10 @@ function shuffle()
 {
     // for 1000 turns
     // switch the values of two random cards
-    for (var i = 0; i < 1000; i++){
-        var location1 = Math.floor((Math.random() * deck.length));
-        var location2 = Math.floor((Math.random() * deck.length));
-        var tmp = deck[location1];
+    for (let i = 0; i < 1000; i++){
+        let location1 = Math.floor((Math.random() * deck.length));
+        let location2 = Math.floor((Math.random() * deck.length));
+        let tmp = deck[location1];
         deck[location1] = deck[location2];
         deck[location2] = tmp;
     }
@@ -34,10 +34,10 @@ function giveHand()
 {
     // for 1000 turns
     // switch the values of two random cards
-    for (var i = 0; i < 1000; i++){
-        var location1 = Math.floor((Math.random() * deck.length));
-        var location2 = Math.floor((Math.random() * deck.length));
-        var tmp = deck[location1];
+    for (let i = 0; i < 1000; i++){
+        let location1 = Math.floor((Math.random() * deck.length));
+        let location2 = Math.floor((Math.random() * deck.length));
+        let tmp = deck[location1];
         deck[location1] = deck[location2];
         deck[location2] = tmp;
     }
@@ -48,11 +48,11 @@ function renderHand()
 {
     const handSize = 2;
     document.getElementById('deck').innerHTML = '';
-    for(var i = 0; i < handSize; i++)
+    for(let i = 0; i < handSize; i++)
     {
-        var card = document.createElement("div");
-        var value = document.createElement("div");
-        var suit = document.createElement("div");
+        let card = document.createElement("div");
+        let value = document.createElement("div");
+        let suit = document.createElement("div");
         card.className = "card";
         value.className = "value";
         suit.className = "suit " + deck[i].Suit;
@@ -66,11 +66,11 @@ function renderHand()
 function renderDeck()
 {
     document.getElementById('deck').innerHTML = '';
-    for(var i = 0; i < deck.length; i++)
+    for(let i = 0; i < deck.length; i++)
     {
-        var card = document.createElement("div");
-        var value = document.createElement("div");
-        var suit = document.createElement("div");
+        let card = document.createElement("div");
+        let value = document.createElement("div");
+        let suit = document.createElement("div");
         card.className = "card";
         value.className = "value";
         suit.className = "suit " + deck[i].Suit;
@@ -96,10 +96,9 @@ function displayBoard() {
 }
 
 function placePlayerOnBoard() {
-    var playerPlaced = false;
-    for(var i=1; i<=4; ++i){
+    let playerPlaced = false;
+    for(let i=1; i<=4; ++i){
         if(playerBoard[i-1]){
-            //Se ci sono già altri giocatori, mi servono le loro info dal server e su quali board (1-4) sono piazzati
             document.getElementById("player_board"+i).style.display = "block";
             document.getElementById("player_name"+i).style.display = "block";
             document.getElementById("player_money"+i).style.display = "block";
