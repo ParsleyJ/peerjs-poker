@@ -282,7 +282,17 @@ $(document).ready(() => {
                                 }*/
                                 //ROUND ABOUT TO START
                                 if (event instanceof events.RoundAboutToStart) {
-                                    //Nothing
+                                    setTimeout(()=>{
+                                        myAlert("NOTIFICATION", "Round starting in 3...");
+                                    },7000);
+
+                                    setTimeout(()=>{
+                                        myAlert("NOTIFICATION", "Round starting in 2...");
+                                    },8000);
+
+                                    setTimeout(()=>{
+                                        myAlert("NOTIFICATION", "Round starting in 1...");
+                                    },9000);
                                 }
                                 //ROUND STARTED
                                 if (event instanceof events.RoundStarted) {
@@ -328,7 +338,7 @@ $(document).ready(() => {
                                 }
                                 //BLINDDONE
                                 else if (event instanceof events.BlindsPlaced) {
-                                    myAlert("NOTIFICATION", "BLINDS PLACED!")
+                                    myAlert("NOTIFICATION", "BLINDS PLACED! (blind: "+event._blindPlayer+", smallBlind: "+event._smallBlindPlayer+")")
                                     // placeBlinds(event._blindPlayer, event._smallBlindPlayer);
                                     setMoneyState(event._moneyState);
                                 }
