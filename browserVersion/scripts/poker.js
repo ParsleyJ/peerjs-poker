@@ -344,7 +344,10 @@ define((require) => {
             if (decisionVal < 0.01) { // 1% of cases, the player leaves the game.
                 return new LeaveDecision();
             }
-            if (decisionVal < 0.1) { // 9% of cases, folds.
+            if(decisionVal < 0.02 && decisionInput.possibleMoves.some(x => x === "allin")){ // 1% of cases, player all-ins
+                return new AllInDecision();
+            }
+            if (decisionVal < 0.1) { // 8% of cases, folds.
                 return new FoldDecision();
             }
             if (decisionVal < 0.8 && decisionInput.possibleMoves.some(x => x === "call")) { // 70% of cases (when it can), calls.
@@ -352,7 +355,7 @@ define((require) => {
             }
 
             // 20% of cases, picks any of the allowed moves (which can also contain call and fold).
-            let filteredMoves = decisionInput.possibleMoves.filter(m => m !== "leave"); // we don't want to leave also here
+            let filteredMoves = decisionInput.possibleMoves.filter(m => m !== "leave" && m !== "allin"); // we don't want to leave also here
             let pickedMoveName = filteredMoves[Math.floor(Math.random() * filteredMoves.length)];
             let currentBudget = this.player.budget;
             let maxIncreaseOnMinBet = currentBudget + decisionInput.myPreviousBet - decisionInput.minBet;
