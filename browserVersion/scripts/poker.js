@@ -1190,7 +1190,7 @@ define((require) => {
     }
 
 
-    class GameRoom {
+    class GameEngine {
         _playerInterfaces = [];
         _minPlayersInGame = 2;
         _maxPlayersInGame = 4;
@@ -1425,7 +1425,7 @@ define((require) => {
         Full,
         Poker,
         // general game stuff
-        GameRoom,
+        GameEngine,
         Player,
         Rules,
         Round,

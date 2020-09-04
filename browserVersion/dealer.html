@@ -39,7 +39,7 @@
                     });
                 }
 
-                let game = new poker.GameRoom();
+                let game = new poker.GameEngine();
 
                 let dealer = new remotePlay.RegistrationServer("room0", game);
                 dealer.listen();
